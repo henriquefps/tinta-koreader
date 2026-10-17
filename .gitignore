@@ -1,0 +1,21 @@
+.DS_Store
+.AppleDouble
+.Spotlight-V100
+.Trashes
+._*
+*.swp
+*~
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+
+# Local config and KOReader reference sources
+config.json
+.koreader-ref/
+
+# Logs and database pulled from the Kindle (scripts/pull-logs.sh): the database holds app settings and tokens
+kindle-logs/
+
+# Release zips (scripts/build-release.sh)
+dist/

@@ -1,0 +1,43 @@
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+-- Copyright (C) 2026 Tinta contributors
+-- Nota rápida app: texts pt (default) and en (manifest.strings, ctx.i18n). Same keys and specifiers in both.
+return {
+    pt = {
+        name = "Nota",
+        empty_widget = "toque para escrever",
+        empty_screen = "Nenhuma nota ainda.",
+        btn_edit = "Editar",
+        btn_write = "Escrever",
+        btn_clear = "Limpar",
+        edit_title = "Nota rápida",
+        edit_hint = "Escreva aqui",
+        too_long = "Nota longa demais: %d de %d caracteres",
+        clear_title = "Limpar a nota",
+        clear_text = "Apagar o texto da nota?",
+        clear_ok = "Limpar",
+        count = "%d caracteres",
+        saved = "Nota salva",
+        cleared = "Nota apagada",
+        set_max = "Tamanho máximo (caracteres)",
+        set_big = "Letra maior",
+    },
+    en = {
+        name = "Note",
+        empty_widget = "tap to write",
+        empty_screen = "No note yet.",
+        btn_edit = "Edit",
+        btn_write = "Write",
+        btn_clear = "Clear",
+        edit_title = "Quick note",
+        edit_hint = "Write here",
+        too_long = "Note too long: %d of %d characters",
+        clear_title = "Clear the note",
+        clear_text = "Delete the note text?",
+        clear_ok = "Clear",
+        count = "%d characters",
+        saved = "Note saved",
+        cleared = "Note deleted",
+        set_max = "Maximum size (characters)",
+        set_big = "Larger text",
+    },
+}

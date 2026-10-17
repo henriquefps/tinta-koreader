@@ -1,0 +1,27 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install LuaJIT and zip
+        run: sudo apt-get update && sudo apt-get install -y luajit zip
+      - name: Run every suite
+        run: scripts/test-all.sh
+      - name: Build tinta-<tag>.zip
+        run: scripts/build-release.sh "${GITHUB_REF_NAME}"
+      - name: Attach it to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 \
+            || gh release create "${GITHUB_REF_NAME}" --title "Tinta ${GITHUB_REF_NAME}" --generate-notes
+          gh release upload "${GITHUB_REF_NAME}" "dist/tinta-${GITHUB_REF_NAME}.zip" --clobber

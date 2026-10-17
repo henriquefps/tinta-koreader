@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tinta · protótipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout: o Kindle simulado em tamanho real (600×800 px, escalado para caber) à esquerda; controles e notas à direita. */
+:root {
+  --bg: #e6e9ed;          /* fundo da página */
+  --panel: #ffffff;       /* painel lateral */
+  --fg: #1c232b;
+  --muted: #5a6572;
+  --line: #cdd4dc;
+  --accent: #2e5c88;      /* controles da página (nunca na tela do Kindle) */
+  --bezel: #25272b;       /* moldura do aparelho */
+  --paper: #ecebe6;       /* e-ink: o branco do papel */
+  --ink: #141414;         /* e-ink: preto */
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-kindle: "Noto Sans", "Helvetica Neue", Arial, sans-serif;  /* a cfont do KOReader é Noto Sans */
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161b; --panel: #1b2128; --fg: #e5e9ee; --muted: #9aa5b2; --line: #2d3742; --accent: #8db2d8;
+    --bezel: #08090a; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg); font: 15px/1.5 var(--font-ui);
+  padding: 24px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px));
+}
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 860px) minmax(300px, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 980px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+header.page { max-width: 1280px; margin: 0 auto 20px; }
+header.page h1 { font-size: 24px; margin: 0 0 4px; text-wrap: balance; }
+header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
+
+/* ---------------------------------------------------------------- aparelho */
+.device-col { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; position: sticky; top: 12px; }
+.device { background: var(--bezel); border-radius: 22px; padding: 26px 22px 46px; box-shadow: 0 10px 30px rgba(0,0,0,.18); max-width: 100%; }
+.holder { position: relative; overflow: hidden; }
+.screen {
+  position: absolute; left: 0; top: 0; transform-origin: 0 0;
+  background: var(--paper); color: var(--ink); font-family: var(--font-kindle);
+  display: flex; flex-direction: column; user-select: none; touch-action: none;
+}
+.device-caption { font: 13px var(--font-mono); color: var(--muted); text-align: center; }
+
+/* Tudo dentro da tela em px reais do KT3 (167 ppi): texto >= 20, toque >= 64 de altura. Só preto e branco. */
+.sb { height: 48px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-bottom: 2px solid var(--ink); }
+.sb .clock { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
+.sb .spacer { flex: 1; }
+.sb .wifi, .sb .bat, .sb .bell { display: flex; align-items: center; gap: 6px; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
+.sb .bell .n { background: var(--ink); color: var(--paper); font-size: 20px; padding: 0 8px; border-radius: 4px; }
+.sb .sleepinfo { font-size: 20px; font-weight: 700; }
+.content { flex: 1; min-height: 0; position: relative; overflow: hidden; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.nav { height: 72px; flex: none; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 2px solid var(--ink); }
+.nav button { all: unset; display: flex; align-items: center; justify-content: center; gap: 8px; font: 700 22px var(--font-kindle); color: var(--ink); cursor: pointer; }
+.nav button + button { border-left: 2px solid var(--ink); }
+.nav button[disabled] { font-weight: 400; cursor: default; opacity: .35; }
+.nav button:focus-visible, .scr-btn:focus-visible, .w:focus-visible, .row:focus-visible { outline: 3px dashed var(--ink); outline-offset: -6px; }
+.handle { position: absolute; left: 50%; bottom: 8px; width: 120px; height: 6px; margin-left: -60px; background: var(--ink); border-radius: 3px; }
+
+/* cabeçalho de app (componente global) */
+.ah { display: flex; align-items: baseline; gap: 12px; padding: 4px 4px 8px; border-bottom: 2px solid var(--ink); }
+.ah-t { font-size: 26px; font-weight: 700; white-space: nowrap; }
+.ah-m { margin-left: auto; font-size: 20px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ah-m.busy, .ah-m.err { font-weight: 700; }
+
+/* início: grade de widgets em células (6×8 em retrato, 8×6 em paisagem) */
+.wgrid { flex: 1; min-height: 0; display: grid; gap: 8px; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(8, 1fr); }
+.landscape .wgrid { grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(6, 1fr); }
+.w { all: unset; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 4px; padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; min-width: 0; min-height: 0; overflow: hidden; position: relative; }
+.w.inv { background: var(--ink); color: var(--paper); }
+.w.stale { border-style: dashed; }
+.w .wh { display: flex; align-items: center; gap: 8px; }
+.w .wn { font-size: 22px; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w .wp { font-size: 26px; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w.big .wp { font-size: 32px; }
+.w .ws { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w .wl { font-size: 20px; display: flex; justify-content: space-between; gap: 8px; border-top: 2px solid currentColor; padding-top: 3px; white-space: nowrap; }
+.w .wl span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.w .wf { font-size: 20px; margin-top: auto; border-top: 2px solid currentColor; padding-top: 3px; display: flex; justify-content: space-between; gap: 8px; white-space: nowrap; }
+.w .wf span { overflow: hidden; text-overflow: ellipsis; }
+.w .wbody { display: flex; gap: 10px; align-items: center; flex: 1; min-height: 0; }
+.w .wcol { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.w.one { align-items: center; justify-content: center; gap: 0; padding: 4px; }
+.w.one b { font-size: 26px; line-height: 1; }
+
+/* blocos genéricos das apps */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.stat { border: 2px solid var(--ink); border-radius: 4px; height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 4px; }
+.stat b { font-size: 44px; line-height: 1; }
+.stat span { font-size: 20px; }
+.stat.inv { background: var(--ink); color: var(--paper); }
+.usage { display: flex; align-items: center; gap: 10px; font-size: 22px; padding: 0 4px; }
+.usage .pv { font-weight: 700; }
+.list { display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; }
+.row { all: unset; box-sizing: border-box; min-height: 64px; border: 2px solid var(--ink); border-radius: 4px; padding: 6px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; cursor: pointer; }
+.row.inv { background: var(--ink); color: var(--paper); }
+.row .r1 { font-size: 22px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .r2 { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .ra { font-size: 20px; grid-row: span 2; text-align: right; }
+.row.static { cursor: default; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 22px; flex: none; }
+.scr-btn { all: unset; box-sizing: border-box; min-height: 64px; min-width: 64px; padding: 0 16px; border: 2px solid var(--ink); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font: 700 22px var(--font-kindle); color: var(--ink); cursor: pointer; background: var(--paper); text-align: center; }
+.scr-btn.inv { background: var(--ink); color: var(--paper); }
+.scr-btn[disabled] { opacity: .35; cursor: default; }
+.btnrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.btnrow.fill .scr-btn { flex: 1; padding: 0 6px; }
+.kv { font-size: 22px; line-height: 1.45; padding: 0 4px; }
+.kv b { font-weight: 700; }
+.note { font-size: 20px; padding: 0 4px; margin-top: auto; }
+.cols { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+.landscape .cols.two { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; align-content: start; }
+.batbig { display: flex; align-items: center; gap: 20px; padding: 4px; }
+.batbig .pct { font-size: 72px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.batbig .eta { font-size: 22px; }
+.chart { border: 2px solid var(--ink); border-radius: 4px; padding: 6px; }
+.chart svg { display: block; width: 100%; height: auto; }
+.mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mini.three { grid-template-columns: repeat(3, 1fr); }
+.mini .stat { height: 84px; }
+.mini .stat b { font-size: 30px; }
+.big-temp { font-size: 96px; font-weight: 700; line-height: 1; }
+.status-line { font-size: 30px; font-weight: 700; padding: 0 4px; }
+.punches { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; border: 2px solid var(--ink); border-radius: 4px; }
+.punches > div { font-size: 22px; padding: 10px 12px; border-bottom: 2px solid var(--ink); }
+.punches > div:nth-last-child(-n+3) { border-bottom: 0; }
+.punches .t { font-weight: 700; font-variant-numeric: tabular-nums; }
+.punches .p { font-size: 20px; }
+
+/* central de notificações */
+.qt { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.qt .scr-btn { flex-direction: column; gap: 0; font-size: 20px; padding: 0 4px; height: 72px; }
+.qt .scr-btn small { font-size: 20px; font-weight: 400; }
+.ncard { all: unset; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 4px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+.ncard.unread { border-width: 4px; padding: 6px 10px; }
+.ncard.high { background: var(--ink); color: var(--paper); }
+.ncard .nh { display: flex; justify-content: space-between; font-size: 20px; }
+.ncard .nt { font-size: 22px; font-weight: 700; }
+.ncard .nb { font-size: 20px; }
+.empty { font-size: 22px; text-align: center; padding: 30px 10px; border: 2px dashed var(--ink); border-radius: 4px; }
+.banner { position: absolute; left: 8px; right: 8px; top: 56px; background: var(--ink); color: var(--paper); border-radius: 6px; padding: 10px 14px; display: flex; flex-direction: column; cursor: pointer; }
+.banner .nh { font-size: 20px; }
+.banner .nt { font-size: 22px; font-weight: 700; }
+
+/* organizar */
+.org { flex: 1; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px; }
+.ctrl { display: flex; flex-direction: column; gap: 8px; }
+.landscape .org { grid-template-columns: minmax(0, 1fr) 280px; grid-template-rows: auto minmax(0, 1fr); }
+.landscape .org .map { grid-row: 2; }
+.landscape .org .ctrl { grid-row: 1 / span 2; grid-column: 2; }
+.seg-k { display: grid; grid-template-columns: 1fr 1fr; border: 2px solid var(--ink); border-radius: 4px; }
+.seg-k button { all: unset; text-align: center; font: 700 20px var(--font-kindle); padding: 8px; cursor: pointer; }
+.seg-k button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.map { display: grid; gap: 4px; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(8, 1fr); min-height: 0; border: 2px solid var(--ink); border-radius: 4px; padding: 4px; }
+.landscape .map { grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(6, 1fr); }
+.map button { all: unset; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 3px; font: 700 20px var(--font-kindle); display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; cursor: pointer; padding: 2px; line-height: 1.1; }
+.map button.sel { background: var(--ink); color: var(--paper); }
+.ctrl .info { font-size: 22px; font-weight: 700; padding: 0 4px; }
+.ctrl .hidden-row { font-size: 20px; padding: 0 4px; }
+.ctrl .hidden-row button { all: unset; text-decoration: underline; cursor: pointer; margin-right: 12px; }
+
+/* tela de repouso */
+.sleep-note { font-size: 20px; text-align: center; border-top: 2px solid var(--ink); padding-top: 6px; flex: none; }
+.sleep-alert { background: var(--ink); color: var(--paper); border-radius: 6px; padding: 8px 12px; font-size: 22px; font-weight: 700; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* sobreposições: menu, confirmação, aviso */
+.backdrop { position: absolute; inset: 0; }
+.sheet { position: absolute; left: 0; right: 0; background: var(--paper); border-top: 3px solid var(--ink); }
+.sheet .sh-t { font-size: 22px; font-weight: 700; padding: 10px 14px; border-bottom: 2px solid var(--ink); }
+.sheet button { all: unset; box-sizing: border-box; width: 100%; min-height: 60px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; font: 22px var(--font-kindle); color: var(--ink); cursor: pointer; border-bottom: 2px solid var(--ink); }
+.sheet button:last-child { border-bottom: 0; }
+.sheet button b { font-weight: 700; }
+.dialog { position: absolute; left: 50%; top: 50%; width: 500px; max-width: calc(100% - 40px); transform: translate(-50%, -50%); background: var(--paper); border: 3px solid var(--ink); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.dialog h3 { margin: 0; font-size: 26px; }
+.dialog p { margin: 0; font-size: 22px; }
+.dialog .btnrow { justify-content: flex-end; }
+.toast { position: absolute; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); font-size: 22px; font-weight: 700; padding: 12px 18px; border-radius: 4px; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
+.flash { position: absolute; inset: 0; background: var(--ink); pointer-events: none; }
+
+/* ---------------------------------------------------------------- painel */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+.panel section { min-width: 0; }
+.ctl { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 10px; }
+.ctl > .lbl { min-width: 110px; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+.seg button { all: unset; padding: 5px 12px; cursor: pointer; font: 14px var(--font-ui); color: var(--fg); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
+.seg button:focus-visible, .gbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type="range"] { accent-color: var(--accent); width: 170px; max-width: 100%; }
+input[type="checkbox"] { accent-color: var(--accent); }
+.gbtn { all: unset; display: block; box-sizing: border-box; width: 100%; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; margin-bottom: 6px; }
+.gbtn:hover { border-color: var(--accent); }
+.gbtn[disabled] { opacity: .45; cursor: default; }
+.gbtn kbd { font: 12px var(--font-mono); color: var(--muted); float: right; margin-left: 8px; }
+.gbtn .src { font: 12px var(--font-mono); color: var(--muted); display: block; }
+.log { font: 13px/1.6 var(--font-mono); margin: 0; padding: 0; list-style: none; color: var(--fg); }
+.log li { border-bottom: 1px dashed var(--line); padding: 3px 0; overflow-wrap: anywhere; }
+.log:empty::before { content: "Nada ainda."; color: var(--muted); }
+.panel ul.plain { margin: 0; padding-left: 18px; }
+.panel ul.plain li { margin-bottom: 6px; }
+.panel p { margin: 0 0 8px; }
+.muted { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .flash { display: none; } }
+/* modo captura (?shot=1): só a tela, em px reais, sem moldura nem painel */
+body.shot { padding: 0; background: var(--paper); }
+body.shot header.page, body.shot .panel, body.shot .device-caption { display: none; }
+body.shot .wrap { display: block; max-width: none; margin: 0; }
+body.shot .device-col { position: static; display: block; }
+body.shot .device { padding: 0; border-radius: 0; background: none; box-shadow: none; }
+.sec { font-size: 20px; font-weight: 700; padding: 6px 4px 0; letter-spacing: .04em; }
+.notelines { font-size: 20px; padding: 0 4px; line-height: 1.35; }
+.face { display: block; }
+.vstack { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex: 1; min-height: 0; }
+.hstack { display: flex; align-items: center; gap: 10px; flex: 1; min-height: 0; }
+.tbtns { display: flex; gap: 8px; margin-top: auto; }
+.tbtns .scr-btn { flex: 1; min-width: 0; padding: 0 4px; }
+.tbtns .scr-btn small { display: block; font-size: 20px; font-weight: 400; }
+.tbtns .scr-btn { flex-direction: column; }
+.hugetxt { font-size: 120px; font-weight: 700; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; }
+.bigtitle { font-size: 26px; font-weight: 700; text-align: center; }
+.notefield { border: 2px solid var(--ink); border-radius: 4px; padding: 10px; font-size: 24px; flex: 1; min-height: 0; overflow: hidden; line-height: 1.4; }
+.wnote { font-size: 20px; white-space: pre-line; overflow: hidden; line-height: 1.25; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Tinta: protótipo do dashboard</h1>
+  <p>Plugin do KOReader que transforma o Kindle num painel de apps. A tela está em tamanho real do Kindle KT3 (600 × 800 px, preto e branco), com as apps que o sistema público traz: Notificações, Sistema, Bateria, Relógio, Repouso, Timer, Nota e Contagem. Os dados são de exemplo.</p>
+</header>
+
+<div class="wrap">
+  <div class="device-col">
+    <div class="device"><div class="holder" id="holder"><div class="screen" id="screen"></div></div></div>
+    <div class="device-caption" id="caption">Kindle KT3 · 600 × 800 · retrato</div>
+  </div>
+
+  <aside class="panel">
+    <section>
+      <h2>Telas</h2>
+      <div class="seg" id="seg-view">
+        <button type="button" data-v="home">Início</button><button type="button" data-v="central">Central</button><button type="button" data-v="apps">Apps</button><button type="button" data-v="sleep">Repouso (página)</button><button type="button" data-v="sistema">Sistema</button><button type="button" data-v="sleepcfg">Sistema › Repouso</button><button type="button" data-v="organizar">Organizar</button><button type="button" data-v="relogio">Relógio</button><button type="button" data-v="timer">Timer</button><button type="button" data-v="nota">Nota</button><button type="button" data-v="contagem">Contagem</button><button type="button" data-v="bateria">Bateria</button>
+      </div>
+    </section>
+    <section>
+      <h2>Simular o aparelho</h2>
+      <div class="ctl"><span class="lbl">Orientação</span>
+        <div class="seg" id="seg-orient"><button type="button" data-v="portrait">Retrato</button><button type="button" data-v="landscape">Paisagem</button></div>
+      </div>
+      <div class="ctl"><span class="lbl">Estilo do relógio</span>
+        <div class="seg" id="seg-style"><button type="button" data-v="digital">Digital</button><button type="button" data-v="data">Com data</button><button type="button" data-v="analogico">Analógico</button><button type="button" data-v="minimo">Mínimo</button></div>
+      </div>
+    </section>
+    <section>
+      <h2>Como usar</h2>
+      <ul class="plain">
+        <li>Toque nos widgets, no sino, no relógio ou na barra de baixo, como no aparelho.</li>
+        <li><b>Menu › Apps</b> abre o lançador; <b>Menu › Organizar o início</b> abre o organizador.</li>
+        <li>Parâmetros de URL: <code>?view=home|central|apps|sleep|sistema|sleepcfg|organizar|relogio|timer|nota|contagem|bateria</code>, <code>&amp;land=1</code>, <code>&amp;style=analogico</code> e <code>&amp;shot=1</code> (só a tela, em px reais, para as capturas).</li>
+        <li>O horário é fixo (sexta, 16 de outubro, 14:32) para as capturas serem reproduzíveis.</li>
+      </ul>
+    </section>
+  </aside>
+</div>
+
+<script>
+"use strict";
+// relógio fixo: as capturas saem sempre iguais
+const NOW = new Date(2026, 9, 16, 14, 32);
+const P = new URLSearchParams(location.search);
+const SHOT = P.get("shot") === "1";
+const S = {
+  stack: [{ r: P.get("view") === "sleep" ? "home" : (P.get("view") || "home") }],
+  wifi: "on", pct: 64, landscape: P.get("land") === "1", style: P.get("style") || "data",
+  sleep: P.get("view") === "sleep", menu: P.get("menu") === "1",
+  orgMode: "home", sel: "nota", sleepEvery: 1800, idleMode: "always", idleMin: 5, wake: "schedule",
+  timerSel: "pomo",
+  layout: {
+    home: [
+      { id: "relogio", size: "4x2" }, { id: "bateria", size: "2x2" }, { id: "notif", size: "4x2" }, { id: "contagem", size: "2x2" },
+      { id: "nota", size: "4x2" }, { id: "timer", size: "2x2" }, { id: "repouso", size: "4x2" }, { id: "sistema", size: "2x2" },
+    ],
+    sleep: [
+      { id: "relogio", size: "4x4" }, { id: "bateria", size: "2x2" }, { id: "contagem", size: "2x2" }, { id: "notif", size: "4x2" }, { id: "nota", size: "2x4" },
+    ],
+  },
+  notifs: [
+    { app: "timer", title: "Tempo esgotado", body: "25 min concluídos", prio: "normal", t: "14:25", read: false },
+    { app: "contagem", title: "Hoje: Entrega do livro", body: "chegou o dia", prio: "alta", t: "08:00", read: false },
+    { app: "bateria", title: "Bateria em 15%", body: "ligue o carregador", prio: "alta", t: "Ontem", read: true },
+    { app: "sistema", title: "Wi-Fi reconectado", body: "Casa", prio: "normal", t: "Ontem", read: true },
+    { app: "timer", title: "Tempo esgotado", body: "pausa terminada", prio: "normal", t: "Ontem", read: true },
+  ],
+  note: "Comprar pão\nLigar para o banco\nRegar as plantas",
+  counts: [{ name: "Mudança", days: 12, date: "28/10/2026" }, { name: "Férias", days: 65, date: "20/12/2026" }, { name: "Maratona", days: 120, date: "14/02/2027" }],
+};
+const APPS = {
+  bateria: { name: "Bateria", short: "Bat.", sizes: ["2x2", "4x2", "1x1"] },
+  contagem: { name: "Contagem", short: "Cont.", sizes: ["2x2", "4x2", "1x1"] },
+  nota: { name: "Nota", short: "Nota", sizes: ["2x2", "4x2", "2x4", "4x4"] },
+  notif: { name: "Notificações", short: "Notif.", sizes: ["2x2", "4x2", "4x4"] },
+  relogio: { name: "Relógio", short: "Relógio", sizes: ["2x2", "4x2", "4x4", "2x4", "1x1"] },
+  repouso: { name: "Repouso", short: "Repouso", sizes: ["2x2", "4x2", "1x1"] },
+  sistema: { name: "Sistema", short: "Sist.", sizes: ["1x1", "2x2"] },
+  timer: { name: "Timer", short: "Timer", sizes: ["2x2", "4x2", "1x1"] },
+};
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const current = () => S.stack[S.stack.length - 1];
+const dims = () => S.landscape ? [800, 600] : [600, 800];
+const gridDims = () => S.landscape ? [8, 6] : [6, 8];
+const parseSize = s => s.split("x").map(Number);
+const unread = () => S.notifs.filter(n => !n.read);
+const NAME = { timer: "Timer", contagem: "Contagem", bateria: "Bateria", sistema: "Sistema" };
+const hm = "14:32";
+const eta = "~14h";
+
+// ---------------------------------------------------------------- ícones
+const I = (body, w = 30) => `<svg width="${w}" height="${w}" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3">${body}</svg>`;
+const ICON = {
+  bateria: I('<rect x="2" y="9" width="24" height="14"/><rect x="27" y="13" width="3" height="6" fill="currentColor"/><rect x="6" y="13" width="12" height="6" fill="currentColor" stroke="none"/>'),
+  notif: I('<path d="M8 22V14a8 8 0 0 1 16 0v8l3 3H5z"/><path d="M13 28h6"/>'),
+  sistema: I('<circle cx="16" cy="16" r="5"/><path d="M16 2v5M16 25v5M2 16h5M25 16h5M6 6l3.5 3.5M22.5 22.5L26 26M26 6l-3.5 3.5M9.5 22.5L6 26"/>'),
+};
+function wifiIcon() {
+  const arcs = '<path d="M3 11a17 17 0 0 1 24 0"/><path d="M7.5 15.5a11 11 0 0 1 15 0"/><path d="M12 20a5 5 0 0 1 6 0"/>';
+  return `<svg width="30" height="26" viewBox="0 0 30 26" fill="none" stroke="currentColor" stroke-width="3">${arcs}<circle cx="15" cy="23" r="2" fill="currentColor"/></svg>`;
+}
+function batteryIcon(w = 34, h = 18, pct = S.pct) {
+  const fill = Math.round((w - 8) * pct / 100);
+  return `<svg width="${w + 4}" height="${h}" viewBox="0 0 ${w + 4} ${h}"><rect x="1" y="1" width="${w - 2}" height="${h - 2}" fill="none" stroke="currentColor" stroke-width="2"/><rect x="${w}" y="${h * 0.28}" width="4" height="${h * 0.44}" fill="currentColor"/><rect x="4" y="4" width="${fill}" height="${h - 8}" fill="currentColor"/></svg>`;
+}
+const bellIcon = '<svg width="24" height="26" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3"><path d="M8 22V14a8 8 0 0 1 16 0v8l3 3H5z"/><path d="M13 28h6"/></svg>';
+// mostrador analógico para 14:32: ponteiros de hora e minuto
+function face(d) {
+  const c = d / 2, r = c - 3, a = (14 % 12 + 32 / 60) * 30, m = 32 * 6;
+  const p = (deg, len) => `${(c + Math.sin(deg * Math.PI / 180) * len).toFixed(1)},${(c - Math.cos(deg * Math.PI / 180) * len).toFixed(1)}`;
+  let ticks = "";
+  for (let i = 0; i < 12; i++) { const deg = i * 30, l = i % 3 === 0 ? r * 0.18 : r * 0.09; ticks += `<line x1="${p(deg, r).split(",")[0]}" y1="${p(deg, r).split(",")[1]}" x2="${p(deg, r - l).split(",")[0]}" y2="${p(deg, r - l).split(",")[1]}" stroke-width="${i % 3 === 0 ? 4 : 2}"/>`; }
+  return `<svg class="face" width="${d}" height="${d}" viewBox="0 0 ${d} ${d}" fill="none" stroke="currentColor"><circle cx="${c}" cy="${c}" r="${r}" stroke-width="3"/>${ticks}<polyline points="${c},${c} ${p(a, r * 0.5)}" stroke-width="6" stroke-linecap="round"/><polyline points="${c},${c} ${p(m, r * 0.78)}" stroke-width="4" stroke-linecap="round"/><circle cx="${c}" cy="${c}" r="4" fill="currentColor"/></svg>`;
+}
+function spark(w = 150, h = 50) {
+  const ys = [8, 10, 11, 14, 15, 19, 22, 24, 27, 30, 33, 36, 40, 42];
+  const pts = ys.map((y, i) => `${(3 + i * (w - 6) / (ys.length - 1)).toFixed(1)},${(3 + y * (h - 10) / 42).toFixed(1)}`).join(" ");
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="3"/><line x1="3" x2="${w - 3}" y1="${h - 2}" y2="${h - 2}" stroke="currentColor" stroke-width="2"/></svg>`;
+}
+
+// ---------------------------------------------------------------- widgets
+const head = id => `<span class="wh"><span class="wn">${esc(APPS[id].name)}</span>${ICON[id] || ""}</span>`;
+function relogioWidget(size, w, h) {
+  const st = S.style, wide = w >= 4;
+  if (size === "1x1") return { cls: "one", html: `<b>${hm}</b>` };
+  const big = (px) => `<span style="font-size:${px}px;font-weight:700;line-height:1">${hm}</span>`;
+  if (st === "analogico") {
+    if (h >= 4) return { cls: "", html: `<span class="vstack">${face(w >= 4 ? 300 : 160)}${big(44)}</span>` };
+    if (wide) return { cls: "", html: `<span class="hstack">${face(130)}<span style="flex:1;text-align:center">${big(80)}</span></span>` };
+    return { cls: "", html: `<span class="vstack">${face(130)}</span>` };
+  }
+  if (st === "data") {
+    if (wide) return { cls: "", html: `<span class="vstack">${big(h >= 4 ? 130 : 100)}<span style="font-size:${h >= 4 ? 30 : 22}px">sexta, 16 de outubro</span></span>` };
+    return { cls: "", html: `<span class="vstack">${big(60)}<span style="font-size:22px">sexta</span><span style="font-size:22px">16 de outubro</span></span>` };
+  }
+  if (st === "minimo") return { cls: "", html: `<span class="vstack">${big(wide ? 130 : 80)}</span>` };
+  return { cls: "", html: `<span class="vstack">${big(wide ? 150 : 80)}</span>` };
+}
+function widgetBody(id, size) {
+  const [w, h] = parseSize(size);
+  if (id === "relogio") return relogioWidget(size, w, h);
+  if (id === "bateria") {
+    if (size === "1x1") return { cls: "one", html: `${batteryIcon()}<b style="font-size:22px">${S.pct}%</b>` };
+    const body = `<span class="wp">${S.pct}%</span><span class="ws">${eta}</span>`;
+    if (w >= 4) return { cls: "", html: `${head(id)}<span class="hstack"><span class="wcol">${body}</span>${spark()}</span>` };
+    return { cls: "", html: `${head(id)}${body}` };
+  }
+  if (id === "notif") {
+    const u = unread().length, list = S.notifs;
+    const p = u ? `${u} novas` : "nada novo";
+    if (size === "2x2") return { cls: "", html: `${head(id)}<span class="wp">${p}</span><span class="ws">${esc(list[0].title)}</span>` };
+    const k = h === 4 ? 5 : 2;
+    return { cls: "", html: `${head(id)}<span class="wp">${p}</span>` + list.slice(0, k).map(n => `<span class="wl"><span>${n.read ? "" : "● "}${esc(n.title)}</span><span>${n.t}</span></span>`).join("") };
+  }
+  if (id === "timer") {
+    if (size === "1x1") return { cls: "one", html: `<b>▶</b>` };
+    const base = `<span class="wh"><span class="wn">Timer</span></span><span class="wp">25 min</span><span class="ws">pomodoro 25/5</span>`;
+    return { cls: "", html: base + (w >= 4 ? `<span class="wl"><span>pronto</span><span></span></span>` : "") };
+  }
+  if (id === "nota") {
+    const t = S.note ? esc(S.note) : "toque para escrever";
+    const fs = size === "2x2" || size === "4x2" ? 20 : 24;
+    return { cls: "", html: `<span class="wh"><span class="wn">Nota</span></span><span class="wnote" style="font-size:${fs}px">${t}</span>` };
+  }
+  if (id === "contagem") {
+    const c = S.counts;
+    if (size === "1x1") return { cls: "one", html: `<b>${c[0].days}</b>` };
+    if (w >= 4) return { cls: "", html: `<span class="wh"><span class="wn">${c[0].name}</span></span><span class="wp">${c[0].days} dias</span><span class="ws">faltam ${c[0].days} dias para ${c[0].name}</span>` + c.slice(1).map(x => `<span class="wl"><span>${x.name}</span><span>${x.days} dias</span></span>`).join("") };
+    return { cls: "", html: `<span class="wh"><span class="wn">${c[0].name}</span></span><span class="wp">${c[0].days} dias</span><span class="ws">em ${c[0].date}</span>` };
+  }
+  if (id === "repouso") {
+    if (size === "1x1") return { cls: "one", html: `<b style="font-size:20px">Dormir</b><span style="font-size:20px">agora</span>` };
+    const modeShort = { always: "sempre", battery: "bateria", never: "nunca" }[S.idleMode];
+    if (w >= 4 && h >= 2) {
+      const alone = S.idleMode !== "never";
+      const b = (l, sub, inv) => `<span class="scr-btn ${inv ? "inv" : ""}" style="flex:1;flex-direction:column;min-height:64px;padding:0 4px;font-size:22px">${l}<small style="font-size:20px;font-weight:400">${sub}</small></span>`;
+      return { cls: "", html: `<span class="wh"><span class="wn">Repouso</span></span><span class="tbtns">${b(alone ? S.idleMin + " min" : "–", "sem tocar")}${b(modeShort, "sozinho", alone)}${b("Dormir", "agora")}</span>` };
+    }
+    return { cls: "", html: `<span class="wh"><span class="wn">Repouso</span></span><span class="wl" style="border:0"><span>sozinho</span><span>${modeShort}</span></span><span class="wl" style="border:0"><span>depois de</span><span>${S.idleMin} min</span></span>` };
+  }
+  if (id === "sistema") {
+    if (size === "1x1") return { cls: "one", html: ICON.sistema };
+    return { cls: "", html: `${head(id)}<span class="wp">Conectado</span><span class="ws">v0.1</span>` };
+  }
+  return { cls: "", html: "" };
+}
+function pack(list) {
+  const [C, R] = gridDims();
+  const pages = [];
+  const free = (occ, x, y, w, h) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (occ[j * C + i]) return false; return true; };
+  for (const it of list) {
+    let [w, h] = parseSize(it.size); w = Math.min(w, C); h = Math.min(h, R);
+    let placed = false;
+    for (let p = 0; !placed; p++) {
+      if (!pages[p]) pages[p] = { occ: new Array(C * R).fill(false), items: [] };
+      const pg = pages[p];
+      for (let y = 0; y + h <= R && !placed; y++) for (let x = 0; x + w <= C && !placed; x++) {
+        if (free(pg.occ, x, y, w, h)) {
+          for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) pg.occ[j * C + i] = true;
+          pg.items.push({ ...it, x, y, w, h }); placed = true;
+        }
+      }
+    }
+  }
+  return pages.length ? pages.map(p => p.items) : [[]];
+}
+function widgetGrid(items, interactive = true) {
+  return `<div class="wgrid">${items.map(it => {
+    const b = widgetBody(it.id, it.size);
+    const style = `grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}`;
+    const open = it.id === "notif" ? "central" : it.id;
+    return interactive
+      ? `<button type="button" class="w ${b.cls}" style="${style}" data-open="${open}" aria-label="${esc(APPS[it.id].name)}">${b.html}</button>`
+      : `<div class="w ${b.cls}" style="${style}">${b.html}</div>`;
+  }).join("")}</div>`;
+}
+
+// ---------------------------------------------------------------- componentes globais
+function statusBar() {
+  if (S.sleep) return `<div class="sb"><span class="sleepinfo">Repouso · atualizado 14:30 · próxima 15:00</span><span class="spacer"></span><span class="bat" style="cursor:default">${S.pct}% ${batteryIcon()}</span></div>`;
+  const u = unread().length;
+  return `<div class="sb">
+    <span class="clock" data-act="refresh">${hm}</span>
+    <span class="bell" data-open="central">${bellIcon}${u ? `<span class="n">${u}</span>` : ""}</span>
+    <span class="spacer"></span>
+    <span class="wifi" data-open="central">${wifiIcon()}</span>
+    <span class="bat" data-open="bateria">${S.pct}% · ${eta} ${batteryIcon()}</span>
+  </div>`;
+}
+function navBar() {
+  const home = current().r === "home";
+  return `<div class="nav">
+    <button type="button" data-act="home" ${home ? "disabled" : ""}>⌂ Início</button>
+    <button type="button" data-act="back" ${S.stack.length < 2 ? "disabled" : ""}>‹ Voltar</button>
+    <button type="button" data-act="refresh">↻ Atualizar</button>
+    <button type="button" data-act="menu">☰ Menu</button>
+  </div>`;
+}
+const appHeader = (title, meta = "") => `<div class="ah"><span class="ah-t">${esc(title)}</span><span class="ah-m">${esc(meta)}</span></div>`;
+function row(act, title, sub, right, extra = "") {
+  return `<button type="button" class="row ${extra}" ${act}><span class="r1">${title}</span><span class="ra">${right}</span><span class="r2">${sub}</span></button>`;
+}
+const sec = t => `<div class="sec">${t}</div>`;
+const btnRow = (arr) => `<div class="btnrow fill">${arr.map(([l, a, inv]) => `<button type="button" class="scr-btn ${inv ? "inv" : ""}" ${a}>${l}</button>`).join("")}</div>`;
+
+// ---------------------------------------------------------------- telas
+function homeScreen() { return widgetGrid(pack(S.layout.home)[0]); }
+function sleepPage() {
+  const pages = pack(S.layout.sleep);
+  return `<div class="sleep-alert">${unread().length} não lidas</div>${widgetGrid(pages[0], false)}<div class="sleep-note">Em repouso. Aperte o botão de energia para usar a Tinta.</div>`;
+}
+function centralScreen() {
+  const per = S.landscape ? 2 : 3;
+  const list = S.notifs.slice(0, per).map(n => `
+    <button type="button" class="ncard ${n.read ? "" : "unread"} ${n.prio === "alta" && !n.read ? "high" : ""}">
+      <span class="nh"><span>${esc(NAME[n.app])}${n.prio === "alta" ? " · alta" : ""}</span><span>${n.t}</span></span>
+      <span class="nt">${esc(n.title)}</span><span class="nb">${esc(n.body)}</span></button>`).join("");
+  const more = S.notifs.length > per ? `<div class="note" style="margin-top:0">+ ${S.notifs.length - per} mais antigas</div>` : "";
+  return `${appHeader("Central", `${unread().length} não lidas`)}
+    <div class="qt">
+      <button type="button" class="scr-btn inv">Wi-Fi<small>ligado</small></button>
+      <button type="button" class="scr-btn" data-act="sleep-now">Repouso<small>agora</small></button>
+      <button type="button" class="scr-btn" data-act="rotate">Girar<small>${S.landscape ? "paisagem" : "retrato"}</small></button>
+      <button type="button" class="scr-btn" data-open="sistema">Sistema<small>ajustes</small></button>
+    </div>
+    <div class="list">${list}${more}</div>
+    ${btnRow([["Marcar todas como lidas", ""], ["Limpar", ""]])}`;
+}
+function appsScreen() {
+  const ids = Object.keys(APPS).sort((a, b) => APPS[a].name.localeCompare(APPS[b].name, "pt"));
+  const rows = ids.map(id => row(`data-open="${id === "notif" ? "central" : id}"`, APPS[id].name, "", "no Início")).join("");
+  return `${appHeader("Apps", `${ids.length} apps`)}<div class="list ${S.landscape ? "cols two" : ""}" style="${S.landscape ? "display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:4px 10px" : ""}">${rows}</div>`;
+}
+function sistemaScreen() {
+  const rows = [
+    row('data-act="noop"', "Wi-Fi", "Conectado", "<b>Desligar</b>"),
+    row('data-org="home"', "Organizar", "Início e página de repouso", "›"),
+    row('data-act="noop"', "Notificações", "por app, aviso no topo, repouso", "›"),
+    row('data-act="noop"', "Atualizações", "intervalos, horários, silêncio 23h–7h", "›"),
+    row('data-go="sleepcfg"', "Repouso", `dorme sozinho: ${({always:"sempre",battery:"só na bateria",never:"nunca"})[S.idleMode]} · atualiza: pelo horário`, "›"),
+    row('data-act="noop"', "Conexões", "nenhum servidor", "›"),
+    row('data-act="noop"', "Tela e navegação", `barra + gestos · ${S.landscape ? "paisagem" : "retrato"}`, "›"),
+    row('data-act="noop"', "Apps", "configurações de cada app", "›"),
+    row('data-act="noop"', "Dados", "tinta.sqlite3 · 212 KB", "›"),
+    row('data-act="noop"', "Sair para o KOReader", "fecha a Tinta", "›"),
+  ].join("");
+  return `${appHeader("Sistema")}<div class="cols two">${rows}</div>`;
+}
+function sleepcfgScreen() {
+  const m = S.idleMode;
+  const modeTxt = { always: "sempre", battery: "só na bateria", never: "nunca" }[m];
+  const modeSub = { always: "com ou sem o cabo ligado", battery: "não dorme com o cabo ligado", never: "não dorme sozinho" }[m];
+  const L = S.landscape;
+  return `${appHeader("Repouso")}
+    <div class="cols ${L ? "two" : ""}">
+      ${L ? "" : sec("QUANDO DORMIR")}
+      ${row('data-act="idlemode"', "Dormir sozinho", modeSub, modeTxt)}
+      ${m !== "never" ? row('data-act="noop"', "Depois de", "sem tocar na tela", `${S.idleMin} min`) : ""}
+      ${row('data-act="noop"', "Dormir agora", "o botão de energia acorda", "›")}
+      ${L ? "" : sec("ENQUANTO DORME")}
+      ${row('data-act="noop"', "Atualizar a tela", "liga o Wi-Fi, atualiza e volta a dormir", "pelo horário")}
+      ${L ? "" : `<div class="notelines">dias úteis 07:30–18:30 a cada 30 min<br>18:30–23:00 a cada 1 h<br>23:00–07:30 não atualiza<br>(fins de semana: a cada 1 h · horários fixos nesta versão)</div>`}
+      ${row('data-act="noop"', "Títulos na tela de repouso", "esconde o título no aviso do topo", "mostrar")}
+      ${row('data-go="organizar"', "O que aparece na tela", `${S.layout.sleep.length} widgets · editar no organizador`, "›")}
+    </div>`;
+}
+function organizeScreen() {
+  const mode = S.orgMode, list = S.layout[mode];
+  const pages = pack(list);
+  const sel = list.find(x => x.id === S.sel) || list[0];
+  const map = pages[0].map(it => {
+    const label = it.w >= 2 ? APPS[it.id].short : APPS[it.id].short.slice(0, 2);
+    return `<button type="button" class="${it.id === sel.id ? "sel" : ""}" data-sel="${it.id}" style="grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}">${esc(label)}${it.w >= 2 && it.h >= 2 ? "<br>" + it.size.replace("x", "×") : ""}</button>`;
+  }).join("");
+  const free = Object.keys(APPS).filter(id => !list.some(x => x.id === id) && id !== "sistema");
+  return `${appHeader("Organizar", "1 página")}
+    <div class="org">
+      <div class="seg-k"><button type="button" data-act="org-home" aria-pressed="${mode === "home"}">Início</button><button type="button" data-act="org-sleep" aria-pressed="${mode === "sleep"}">Repouso</button></div>
+      <div class="map">${map}</div>
+      <div class="ctrl">
+        <div class="info">${esc(APPS[sel.id].name)} · ${sel.size.replace("x", "×")}</div>
+        <div class="btnrow fill">
+          <button type="button" class="scr-btn">↑ Antes</button><button type="button" class="scr-btn">↓ Depois</button><button type="button" class="scr-btn">Tamanho ▸</button>
+        </div>
+        <div class="btnrow fill">
+          <button type="button" class="scr-btn">${mode === "sleep" ? "Tirar" : "Ocultar"}</button><button type="button" class="scr-btn inv" data-act="back">Pronto</button>
+        </div>
+        <div class="hidden-row">${mode === "sleep" ? (free.length ? "Adicionar: " + free.map(id => `<button type="button">${esc(APPS[id].name)}</button>`).join("") : "Nenhuma app para adicionar.") : "Nenhuma app oculta."}</div>
+      </div>
+    </div>`;
+}
+function relogioScreen() {
+  const styles = [["digital", "Digital grande", "HH:MM em tamanho grande"], ["data", "Digital com data", "hora, dia da semana e data"], ["analogico", "Analógico", "mostrador com ponteiros"], ["minimo", "Mínimo", "hora e próximo despertar"]];
+  const pv = widgetBody("relogio", "4x2");
+  const rows = styles.map(([id, t, s]) => row(`data-style="${id}"`, t, s, S.style === id ? "●" : "", S.style === id ? "inv" : "")).join("");
+  const land = S.landscape;
+  const prev = `<div class="w" style="${land ? "flex:none;width:384px;height:170px;" : "flex:none;height:150px;"}cursor:default">${pv.html}</div>`;
+  return `${appHeader("Relógio")}${land ? `<div style="display:flex;gap:8px;flex:1;min-height:0">${prev}<div class="list">${rows}</div></div>` : `${prev}<div class="list">${rows}</div>`}`;
+}
+function timerScreen() {
+  const sel = S.timerSel;
+  const pre = [["pomo", "25/5"], ["m15", "15 min"], ["m10", "10 min"], ["m5", "5 min"], ["custom", "Outro…"]];
+  const b = pre.map(([id, l]) => `<button type="button" class="scr-btn ${sel === id ? "inv" : ""}" data-timersel="${id}" style="flex:1;padding:0 2px;font-size:${S.landscape ? 22 : 20}px">${l}</button>`).join("");
+  const big = sel === "pomo" ? "25 min" : sel === "m15" ? "15 min" : sel === "m10" ? "10 min" : sel === "m5" ? "5 min" : "30 min";
+  const sub = sel === "pomo" ? "pomodoro 25/5" : "pronto";
+  return `${appHeader("Timer")}
+    <div class="vstack" style="gap:${S.landscape ? 4 : 10}px">
+      <div class="bigtitle">pronto</div>
+      <div class="hugetxt" style="font-size:${S.landscape ? 84 : 120}px">${big}</div>
+      <div style="font-size:22px">${sub}</div>
+    </div>
+    <div class="btnrow" style="flex-wrap:nowrap">${b}</div>
+    <button type="button" class="scr-btn inv">Iniciar</button>
+    <div class="sleep-note" style="border:0;padding:0">${sel === "pomo" ? "Pomodoro: foco e pausa em sequência" : "&nbsp;"}</div>`;
+}
+function notaScreen() {
+  return `${appHeader("Nota")}
+    <div class="notefield" style="white-space:pre-line">${esc(S.note)}</div>
+    <div style="text-align:right;font-size:20px;padding:0 4px">${S.note.length} caracteres</div>
+    ${btnRow([["Editar", "", true], ["Limpar", ""]])}`;
+}
+function contagemScreen() {
+  const rows = S.counts.map(c => row('data-act="noop"', `faltam ${c.days} dias para ${c.name}`, c.date, `${c.days} dias`)).join("");
+  return `${appHeader("Contagem")}<div class="list">${rows}</div><button type="button" class="scr-btn inv">Nova</button>`;
+}
+function bateriaScreen() {
+  const W = 560, H = S.landscape ? 150 : 220, L = 44, R = 10, T = 10, B = 30;
+  const pts = [], n = 24;
+  for (let i = 0; i < n; i++) { const x = L + i * (W - L - R) / (n - 1), y = T + (i * 0.55 + Math.sin(i) * 0.4) * (H - T - B) / 18; pts.push(`${x.toFixed(1)},${y.toFixed(1)}`); }
+  const grid = [100, 80, 60].map((p, i) => { const y = T + i * (H - T - B) / 2.4; return `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke-width="1" stroke-dasharray="2 4"/><text x="${L - 6}" y="${y + 6}" text-anchor="end" font-size="18" fill="currentColor" stroke="none">${p}%</text>`; }).join("");
+  const hours = [8, 10, 12, 14].map((h, i) => `<text x="${L + i * 150}" y="${H - 6}" font-size="18" fill="currentColor" stroke="none">${h}h</text>`).join("");
+  const l = pts[pts.length - 1].split(",");
+  return `${appHeader("Bateria")}
+    <div class="batbig"><span class="pct">${S.pct}%</span>${batteryIcon(110, 52)}<span class="eta">${eta} restantes</span></div>
+    <div class="chart"><svg viewBox="0 0 ${W} ${H}" fill="none" stroke="currentColor">${grid}${hours}<line x1="${L}" x2="${L}" y1="${T}" y2="${H - B}" stroke-width="2"/><line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke-width="2"/><polyline points="${pts.join(" ")}" stroke-width="4" stroke-linejoin="round"/><circle cx="${l[0]}" cy="${l[1]}" r="6" fill="currentColor"/></svg></div>
+    <div class="mini">
+      <div class="stat"><b>42 mA</b><span>média</span></div><div class="stat"><b>907</b><span>mAh cheia</span></div>
+      <div class="stat"><b>23 °C</b><span>temperatura</span></div><div class="stat"><b>3.120</b><span>amostras</span></div>
+    </div>`;
+}
+function menuSheet() {
+  const home = current().r === "home";
+  const items = home
+    ? ["Apps", "Organizar o início", "Atualizar todas as apps", "Central de notificações", "Abrir Sistema", "Dormir agora"]
+    : [`Atualizar ${(APPS[current().r] || {name: "app"}).name} agora`, "Apps", "Central de notificações", "Abrir Sistema", "Dormir agora"];
+  const act = t => t === "Apps" ? 'data-open="apps"' : t.startsWith("Organizar") ? 'data-org="home"' : t === "Central de notificações" ? 'data-open="central"' : t === "Abrir Sistema" ? 'data-open="sistema"' : t === "Dormir agora" ? 'data-act="sleep-now"' : 'data-act="menu-close"';
+  const h = 52 + items.length * 60;
+  return `<div class="backdrop" data-act="menu-close"></div><div class="sheet" style="bottom:72px"><div class="sh-t">${home ? "Menu · Início" : "Menu · " + (APPS[current().r] || {name: ""}).name}</div>${items.map(t => `<button type="button" ${act(t)}>${t}</button>`).join("")}</div>`;
+}
+
+const SCREENS = {
+  home: homeScreen, central: centralScreen, apps: appsScreen, sistema: sistemaScreen, sleepcfg: sleepcfgScreen, organizar: organizeScreen,
+  relogio: relogioScreen, timer: timerScreen, nota: notaScreen, contagem: contagemScreen, bateria: bateriaScreen,
+  repouso: () => sleepcfgScreen(),
+};
+
+// ---------------------------------------------------------------- render
+function render() {
+  const [W, H] = dims();
+  const scr = $("#screen"), holder = $("#holder");
+  scr.className = "screen" + (S.landscape ? " landscape" : "");
+  scr.style.width = W + "px"; scr.style.height = H + "px";
+  const avail = SHOT ? W : Math.min(W, ($(".device-col").clientWidth || W) - 44);
+  const k = SHOT ? 1 : Math.min(1, avail / W);
+  scr.style.transform = `scale(${k})`;
+  holder.style.width = W * k + "px"; holder.style.height = H * k + "px";
+  const r = current().r;
+  let content;
+  if (S.sleep) content = sleepPage();
+  else content = (SCREENS[r] || homeScreen)();
+  scr.innerHTML = statusBar() + `<div class="content">${content}${S.menu && !S.sleep ? menuSheet() : ""}</div>` + (S.sleep ? "" : navBar());
+  $("#caption").textContent = `Kindle KT3 · ${W} × ${H} · ${S.landscape ? "paisagem" : "retrato"}`;
+  for (const [id, sel] of [["seg-orient", S.landscape ? "landscape" : "portrait"], ["seg-style", S.style], ["seg-view", S.sleep ? "sleep" : r]])
+    document.querySelectorAll(`#${id} button`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === sel)));
+}
+function push(r) { S.menu = false; S.sleep = false; S.stack.push({ r }); render(); }
+function setView(v) {
+  S.menu = false;
+  if (v === "sleep") { S.sleep = true; } else { S.sleep = false; S.stack = [{ r: v }]; }
+  if (v === "organizar") { S.stack = [{ r: "home" }, { r: "sistema" }, { r: "organizar" }]; }
+  render();
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-open],[data-act],[data-go],[data-org],[data-sel],[data-style],[data-timersel],[data-v]");
+  if (!t) return;
+  const d = t.dataset;
+  if (d.v !== undefined && t.closest("#seg-view")) return setView(d.v);
+  if (d.v !== undefined && t.closest("#seg-orient")) { S.landscape = d.v === "landscape"; return render(); }
+  if (d.v !== undefined && t.closest("#seg-style")) { S.style = d.v; return render(); }
+  if (d.open) return push(d.open);
+  if (d.go) return push(d.go);
+  if (d.org) { S.orgMode = d.org; return push("organizar"); }
+  if (d.sel) { S.sel = d.sel; return render(); }
+  if (d.style) { S.style = d.style; return render(); }
+  if (d.timersel) { S.timerSel = d.timersel; return render(); }
+  switch (d.act) {
+    case "home": S.stack = [{ r: "home" }]; S.sleep = false; S.menu = false; return render();
+    case "back": if (S.stack.length > 1) S.stack.pop(); S.menu = false; return render();
+    case "menu": S.menu = !S.menu; return render();
+    case "menu-close": S.menu = false; return render();
+    case "sleep-now": S.menu = false; S.sleep = true; return render();
+    case "rotate": S.landscape = !S.landscape; return render();
+    case "idlemode": S.idleMode = { always: "battery", battery: "never", never: "always" }[S.idleMode]; return render();
+    case "org-home": S.orgMode = "home"; S.sel = "nota"; return render();
+    case "org-sleep": S.orgMode = "sleep"; S.sel = "relogio"; return render();
+  }
+});
+if (SHOT) document.body.classList.add("shot");
+if (P.get("org") === "sleep") { S.orgMode = "sleep"; S.sel = "relogio"; }
+if (P.get("idle")) S.idleMode = P.get("idle");
+if (S.stack[0].r === "organizar") S.stack = [{ r: "home" }, { r: "sistema" }, { r: "organizar" }];
+addEventListener("resize", render);
+document.fonts && document.fonts.ready.then(render);
+render();
+</script>
+</body>
+</html>

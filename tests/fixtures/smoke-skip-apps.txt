@@ -1,0 +1,4 @@
+# Apps the main headless smoke (tests/tinta_ui_smoke.lua) does not load: it is pinned to the apps of the repo
+# (launcher pages and KT3 hashes). Each loads only for SMOKE_APP=<id>. scripts/nova-app.sh adds the ids it creates.
+_modelo
+_exemplo_json

@@ -1,0 +1,170 @@
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+-- Copyright (C) 2026 Tinta contributors
+-- The store interface (R-B1), run against any backend: contract(T, make_store, label).
+return function(T, make, label)
+    local Store = require("core/store")
+    local eq, same, check = T.eq, T.same, T.check
+    local function N(name) return "store[" .. label .. "]: " .. name end
+
+    local s = make()
+    eq(N("schema version = latest"), s:schema_version(), Store.latest_version())
+    check(N("created_at in meta"), s:meta_get("created_at") ~= nil)
+    s:meta_set("x", 5)
+    eq(N("meta set/get as text"), s:meta_get("x"), "5")
+    s:meta_set("x", nil)
+    eq(N("meta delete"), s:meta_get("x"), nil)
+
+    -- settings
+    eq(N("get unknown"), s:get("portal", "lang"), nil)
+    s:set("portal", "lang", "en")
+    eq(N("set/get string"), s:get("portal", "lang"), "en")
+    s:set("portal", "quiet", { enabled = true, from = "23:00", to = "07:00" })
+    same(N("set/get table"), s:get("portal", "quiet"), { enabled = true, from = "23:00", to = "07:00" })
+    s:set("alfa", "show_remote", false)
+    eq(N("set/get false"), s:get("alfa", "show_remote"), false)
+    s:set("alfa", "interval", 60)
+    eq(N("set/get number"), s:get("alfa", "interval"), 60)
+    s:set("alfa", "ratio", 0.25)
+    eq(N("set/get float"), s:get("alfa", "ratio"), 0.25)
+    eq(N("scopes separate"), s:get("portal", "interval"), nil)
+    same(N("all(scope)"), s:all("alfa"), { show_remote = false, interval = 60, ratio = 0.25 })
+    s:set("alfa", "ratio", nil)
+    eq(N("set nil deletes"), s:get("alfa", "ratio"), nil)
+    check(N("non-JSON value rejected"), not pcall(s.set, s, "alfa", "f", { fn = print }))
+    s:set("alfa", "name", "Notificações · \"quoted\"")
+    eq(N("utf8 and quotes"), s:get("alfa", "name"), "Notificações · \"quoted\"")
+
+    -- layout
+    eq(N("layout never saved -> nil"), s:layout_get("home"), nil)
+    s:layout_set("home", { { app = "alfa", size = "4x4" }, { app = "beta", size = "2x4", hidden = true } })
+    same(N("layout round trip"), s:layout_get("home"), { { app = "alfa", size = "4x4" }, { app = "beta", size = "2x4", hidden = true } })
+    s:layout_set("home", { { app = "bateria", size = "2x2" } })
+    same(N("layout replaced"), s:layout_get("home"), { { app = "bateria", size = "2x2" } })
+    eq(N("pages separate"), s:layout_get("sleep"), nil)
+    s:layout_set("sleep", {})
+    same(N("empty layout saved is empty, not nil"), s:layout_get("sleep"), {})
+
+    -- app data (R-D1)
+    s:data_set("alfa", "seen", { a = 1 })
+    s:data_set("beta", "seen", { b = 2 })
+    same(N("data per app"), s:data_get("alfa", "seen"), { a = 1 })
+    same(N("data per app 2"), s:data_get("beta", "seen"), { b = 2 })
+    s:data_set("alfa", "flag", false)
+    eq(N("data false"), s:data_get("alfa", "flag"), false)
+    s:data_clear("alfa")
+    eq(N("data_clear"), s:data_get("alfa", "seen"), nil)
+    same(N("data_clear keeps other apps"), s:data_get("beta", "seen"), { b = 2 })
+
+    -- cache
+    eq(N("cache empty"), s:cache_get("alfa"), nil)
+    s:cache_put("alfa", { projects = { { id = "p1" } } }, 1234, 2)
+    local v, at, ver = s:cache_get("alfa")
+    same(N("cache value"), v, { projects = { { id = "p1" } } })
+    eq(N("cache fetched_at"), at, 1234)
+    eq(N("cache version"), ver, 2)
+    s:cache_clear("alfa")
+    eq(N("cache_clear"), s:cache_get("alfa"), nil)
+
+    -- state
+    eq(N("state empty"), s:state_get("alfa"), nil)
+    s:state_set("alfa", { last_ok = 10, last_err = 20, err_text = "timeout", fail_streak = 2, busy = true })
+    same(N("state round trip (only persisted fields)"), s:state_get("alfa"), { last_ok = 10, last_err = 20, err_text = "timeout", fail_streak = 2 })
+    s:state_set("alfa", nil)
+    eq(N("state delete"), s:state_get("alfa"), nil)
+
+    -- notifications (R-T3)
+    local id1 = s:notif_add({ app = "alfa", key = "attn:1", type = "attention", title = "A", body = "b", prio = "alta",
+        route = { "project", { id = "9f" } }, created_at = 100 })
+    check(N("notif_add id"), type(id1) == "number")
+    same(N("notif_add dup"), { s:notif_add({ app = "alfa", key = "attn:1", title = "again", created_at = 101 }) }, { nil, "dup" })
+    local id2 = s:notif_add({ app = "beta", key = "attn:1", title = "B", prio = "normal", created_at = 200 })
+    check(N("same key other app is not a dup"), id2 and id2 ~= id1)
+    local n1 = s:notif_get(id1)
+    same(N("notif fields"), { n1.app, n1.key, n1.type, n1.title, n1.body, n1.prio, n1.created_at, n1.read_at },
+        { "alfa", "attn:1", "attention", "A", "b", "alta", 100, nil })
+    same(N("route decoded"), n1.route, { "project", { id = "9f" } })
+    eq(N("find"), s:notif_find("beta", "attn:1").id, id2)
+    eq(N("find missing"), s:notif_find("beta", "zz"), nil)
+    eq(N("count"), s:notif_count(), 2)
+    eq(N("unread"), s:notif_unread_count(), 2)
+    local l = s:notif_list()
+    eq(N("list newest first"), l[1].id .. "," .. l[2].id, id2 .. "," .. id1)
+    eq(N("list limit/offset"), s:notif_list({ offset = 1, limit = 1 })[1].id, id1)
+    check(N("mark_read"), s:notif_mark_read(id1, 300))
+    check(N("mark_read twice -> false"), not s:notif_mark_read(id1, 400))
+    eq(N("read_at kept"), s:notif_get(id1).read_at, 300)
+    eq(N("unread after mark"), s:notif_unread_count(), 1)
+    eq(N("list unread only"), #s:notif_list({ unread = true }), 1)
+    eq(N("mark_all_read count"), s:notif_mark_all_read(500), 1)
+    eq(N("all read"), s:notif_unread_count(), 0)
+    eq(N("clear count"), s:notif_clear(), 2)
+    eq(N("cleared"), s:notif_count(), 0)
+
+    -- R-T4 trim: oldest read first, then oldest unread
+    for i = 1, 6 do s:notif_add({ app = "a", key = "k" .. i, title = "t" .. i, created_at = i }) end
+    s:notif_mark_read(s:notif_find("a", "k2").id, 10)
+    s:notif_mark_read(s:notif_find("a", "k4").id, 10)
+    eq(N("trim under limit"), s:notif_trim(10), 0)
+    eq(N("trim removes excess"), s:notif_trim(3), 3)
+    local keys = {}
+    for _, n in ipairs(s:notif_list()) do keys[#keys + 1] = n.key end
+    same(N("trim dropped read k2,k4 then oldest unread k1"), keys, { "k6", "k5", "k3" })
+    s:notif_clear()
+
+    -- log (last 500)
+    for i = 1, Store.LOG_MAX + 7 do s:log(i, i % 2 == 0 and "alfa" or nil, "info", "line " .. i) end
+    eq(N("log capped"), s:log_count(), Store.LOG_MAX)
+    local ll = s:log_list({ limit = 2 })
+    eq(N("log newest first"), ll[1].msg .. "|" .. ll[2].msg, "line " .. (Store.LOG_MAX + 7) .. "|line " .. (Store.LOG_MAX + 6))
+    eq(N("log oldest kept"), s:log_list({ offset = Store.LOG_MAX - 1, limit = 1 })[1].msg, "line 8")
+    eq(N("log app"), ll[2].app, "alfa")
+    eq(N("log nil app"), ll[1].app, nil)
+
+    -- purge_app (10.5 Remover app): everything of one app, nothing of the others
+    s:set("gone", "k", 1); s:set("gone", "j", { a = 1 }); s:set("stay", "k", 2)
+    s:data_set("gone", "d", 1); s:data_set("stay", "d", 2)
+    s:cache_put("gone", { x = 1 }, 5, 1); s:cache_put("stay", { x = 2 }, 5, 1)
+    s:state_set("gone", { last_ok = 1 }); s:state_set("stay", { last_ok = 2 })
+    s:meta_set("app_version:gone", 3); s:meta_set("legacy_imported:gone", 9); s:meta_set("app_version:stay", 4)
+    s:notif_add({ app = "gone", key = "n1", type = "t", title = "A", body = "b", prio = "alta", created_at = 1 })
+    s:notif_add({ app = "stay", key = "n1", type = "t", title = "A", body = "b", prio = "alta", created_at = 2 })
+    eq(N("purge: warm read before"), s:get("gone", "k"), 1)     -- fills the memo of the SQLite backend
+    eq(N("purge: warm data before"), s:data_get("gone", "d"), 1)
+    local n_before = s:notif_count()
+    check(N("purge_app ok"), s:purge_app("gone"))
+    eq(N("purge: settings gone (memo too)"), s:get("gone", "k"), nil)
+    same(N("purge: all(scope) empty"), s:all("gone"), {})
+    eq(N("purge: data gone (memo too)"), s:data_get("gone", "d"), nil)
+    eq(N("purge: cache gone"), s:cache_get("gone"), nil)
+    eq(N("purge: state gone"), s:state_get("gone"), nil)
+    eq(N("purge: version mark gone"), s:meta_get("app_version:gone"), nil)
+    eq(N("purge: legacy mark gone"), s:meta_get("legacy_imported:gone"), nil)
+    eq(N("purge: its notification gone, the other stays"), s:notif_count(), n_before - 1)
+    eq(N("purge: no notification of the app left"), s:notif_find("gone", "n1"), nil)
+    check(N("purge: other app's notification stays"), s:notif_find("stay", "n1") ~= nil)
+    eq(N("purge: other settings stay"), s:get("stay", "k"), 2)
+    eq(N("purge: other data stays"), s:data_get("stay", "d"), 2)
+    check(N("purge: other cache stays"), s:cache_get("stay") ~= nil)
+    check(N("purge: other state stays"), s:state_get("stay") ~= nil)
+    eq(N("purge: other version mark stays"), s:meta_get("app_version:stay"), "4")
+    s:purge_app("stay")
+    eq(N("purge: leaves no notifications behind"), s:notif_count(), n_before - 2)
+
+    -- transactions (R-B2)
+    local ok, r = s:transaction(function() s:set("t", "a", 1); s:set("t", "b", 2); return "res" end)
+    check(N("transaction ok"), ok == true and r == "res" and s:get("t", "b") == 2)
+    local ok2, err2 = s:transaction(function() s:set("t", "c", 3); error("boom") end)
+    check(N("transaction error -> false, err"), ok2 == false and tostring(err2):find("boom"))
+    local okn = s:transaction(function()
+        s:transaction(function() s:set("t", "n", 1) end)
+        return true
+    end)
+    check(N("nested transaction"), okn and s:get("t", "n") == 1)
+    local okne = s:transaction(function() s:transaction(function() error("inner") end) end)
+    check(N("nested error reaches outermost"), okne == false)
+
+    local st = s:stats()
+    check(N("stats"), st.notifications == 0 and st.log == Store.LOG_MAX)
+    s:close()
+    return s
+end

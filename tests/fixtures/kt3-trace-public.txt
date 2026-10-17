@@ -1,0 +1,169 @@
+001 home renders 210e07b8
+002 open test app by tapping its widget c5a09910
+003 notification high 0ffeb3f0
+004 dedup key twice 279144e5
+005 confirm dialog c15bac5c
+006 dialog ok 88b80993
+007 callback that throws (R-E1) b6676893
+008 attention toggle 02d8f671
+009 paged list next page fb8e3be8
+010 open detail 25de6f94
+011 back swipe from left edge fb8e3be8
+012 menu opens 5e023c5c
+013 interval cycles 5e023c5c
+014 tap outside menu closes fb8e3be8
+015 refresh button a2c7e14d
+016 home swipe from bottom c33e1f04
+017 central by top swipe 28021f2d
+018 open notification 57b73d24
+019 bell opens central 215eedc0
+020 mark all read 98566514
+021 clear asks confirmation 5753641d
+022 confirm clear 0e174004
+023 wifi quick toggle off c9b2e8f8
+024 refresh without wifi f39224d8
+025 wifi quick toggle on b3c11568
+026 failing app screen (R-E2) 5b22b120
+027 error screen back ac3f1dca
+028 header shows app error 5b22b120
+029 hold a widget 9191a570
+030 organizer: before da0f63e8
+031 organizer: size 762559e8
+032 organizer: hide 5fcfb338
+033 organizer: unhide from Ocultas 762559e8
+034 organizer: sleep tab 5da8835e
+035 organizer: add to sleep 2e7a092a
+036 organizer: hide sistema warns 957a5210
+037 organizer done bc936103
+038 sistema main aea21840
+039 sistema notifs 503a2e40
+040 sistema updates a2636700
+041 sistema sleep e337afe1
+042 sistema conn fb3b38d0
+043 sistema screen bcf6ef58
+044 sistema apps 2450cfb0
+045 sistema data d94060a0
+046 sistema log df1f4620
+047 sistema restore 384c4c38
+048 sistema app settings 6d7cf420
+049 bool setting toggles 6d7cf420
+050 choice cycles 6d7cf420
+051 app screen: Estado row 6d7cf420
+052 app screen: turn off b69e92dd
+053 sistema apps list shows the off app dashed eda2a6b0
+054 launcher with an off app 4387d875
+055 launcher: tap turns it on 2eec8bc4
+056 sistema is not switchable 3deb6f78
+057 remove asks for confirmation 2db3d0f3
+058 remove cancelled cd5c2b20
+059 needs-newer app: Sistema list 160c34b4
+060 needs-newer app: its screen 087e9cfc
+061 notif prefs cycle 5bd7d5ad
+062 navigation gestures only b3b0ca80
+063 home with handle 88f3e3b1
+064 navigation back to bar bb6f2390
+065 language en 846cf1b4
+066 language back to pt bb6f2390
+067 dados: screen rows c99df32c
+068 dados: export diagnostic be0f681c
+069 dados: backup 5d0de4d2
+070 dados: restore list cd894c09
+071 dados: restore asks first 3fdd379e
+072 dados: restore confirmed 3c17d148
+073 dados: tinta reloaded on home 3c17d148
+074 dados: restore bad file 495aeae0
+075 dados: bad file confirm 64c78e2d
+076 portrait app bateria bc527ccc
+077 portrait app relogio 50c33074
+078 portrait app repouso 2c7bea34
+079 portrait app timer 588b0f5c
+080 portrait app nota bc1e2880
+081 portrait app contagem 2f23bc15
+082 portrait app contagem edit f932f210
+083 portrait app notificacoes fb392e11
+084 portrait launcher: home 9194a54c
+085 portrait launcher: menu d73daeb8
+086 portrait launcher: tap Apps 24d32888
+087 portrait launcher: next page a852c959
+088 portrait launcher: open hidden app 4df6ee60
+089 portrait launcher: back a852c959
+090 portrait launcher: menu on the list d95295d5
+091 portrait launcher: Apps again only closes the menu a852c959
+092 portrait launcher: hold adds to Home 825edea0
+093 portrait launcher: marked on Home now 825edea0
+094 portrait launcher: home 0c87b645
+095 rotate to landscape 18b74a34
+096 landscape sistema main a1a2cf59
+097 landscape sistema notifs ec2a6378
+098 landscape sistema updates 91bf7e78
+099 landscape sistema sleep a5e1fe70
+100 landscape sistema conn 70f44f44
+101 landscape sistema screen b4f5ebf8
+102 landscape sistema apps 594f4048
+103 landscape sistema data 6ecca8a0
+104 landscape sistema log 6f53fc14
+105 landscape sistema restore 4c6b51cc
+106 landscape central 092ac4e8
+107 landscape organizer 82952db8
+108 landscape test app ab90d5a8
+109 landscape home 18b74a34
+110 landscape menu 4c37912c
+111 landscape launcher: home 18b74a34
+112 landscape launcher: menu 76830a04
+113 landscape launcher: tap Apps 96ec055c
+114 landscape launcher: open hidden app ab90d5a8
+115 landscape launcher: back 96ec055c
+116 landscape launcher: menu on the list af282da4
+117 landscape launcher: Apps again only closes the menu 96ec055c
+118 landscape launcher: hold adds to Home e21f5191
+119 landscape launcher: marked on Home now e21f5191
+120 landscape launcher: home 18b74a34
+121 landscape app bateria dfaabf3d
+122 landscape app relogio 0ba50d54
+123 landscape app repouso 05fcb0fd
+124 landscape app timer a40ab068
+125 landscape app nota 0f93ca01
+126 landscape app contagem c504370c
+127 landscape app contagem edit a984d174
+128 landscape app notificacoes 092ac4e8
+129 landscape app menu keeps Dormir agora 62a62190
+130 home pages 46a23c30
+131 page swipe 50caaebb
+132 home button back to first page 46a23c30
+133 rotate back to portrait 569acf70
+134 portrait pages 569acf70
+135 organizer pages: open 04d14a84
+136 organizer pages: next page dc72509c
+137 organizer pages: pick a widget of page 2 ebf13634
+138 organizer pages: move past a page end dca7fcc4
+139 organizer pages: landscape 66f83b58
+140 organizer pages: landscape sleep tab f2d054bd
+141 organizer pages: portrait again 7becf500
+142 organizer: sleep tab (copy) 7becf500
+143 organizer: copy from Home asks 1d0ac640
+144 organizer: copy cancelled changes nothing 7becf500
+145 organizer: copy confirmed 51efa304
+146 organizer: back home 2d3ac338
+147 tick 8131dc80
+148 repouso opens ae38f284
+149 repouso: wake cycles to nunca 7c7987cc
+150 repouso: wake cycles to 15 min 0d051808
+151 repouso: wake -> 1800 0d051808
+152 repouso: wake -> 3600 24c99c1d
+153 repouso: wake -> 7200 24c99c1d
+154 repouso: wake -> schedule ae38f284
+155 repouso: mode cycles to nunca 69a9347c
+156 repouso: mode cycles to sempre 1190d20c
+157 repouso: minutes cycle 9744923c
+158 repouso: back to 5 min, battery ae38f284
+159 Sistema row shows the summary ff0708d1
+160 Dormir agora b43d2244
+161 sleeping: settle then suspend b43d2244
+162 sleeping: powerd readyToSuspend -> rtcWakeup b43d2244
+163 button wake ae38f284
+164 idle sleep b43d2244
+165 idle: wake ae38f284
+166 sleep page 6e68fcc8
+167 wake request: Dormir agora 6e68fcc8
+168 wake request: settle, suspend, button wake 062262a0
+169 close 811c9dc5
