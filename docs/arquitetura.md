@@ -590,8 +590,10 @@ estava pendente). Comparações usam o cache persistido da leitura anterior.
 
 App local, sem rede:
 
-- Tela: porcentagem grande, desenho da bateria, estimativa (`~4h20 restantes · 42 mA em média` ou
-  `⚡ carregando · ~40min até 100%`), gráfico da descarga recente (eixos em % e hora, como o protótipo, com
+- Tela: porcentagem grande, desenho da bateria, estimativa (`~5 d restantes · 7 mA em média` ou
+  `⚡ carregando · ~40min até 100%`), **duas linhas rotuladas** abaixo (descarregando): `no ritmo atual ~5 d` (ritmo
+  real, dormindo incluído) e `acordado com Wi-Fi ~14 h` (só trechos acordados; em paisagem as duas ficam numa
+  linha), gráfico da descarga recente (eixos em % e hora, como o protótipo, com
   dados do log), blocos: corrente média, capacidade cheia, temperatura, número de amostras.
 - Log: uma linha por mudança de porcentagem ou de carga,
   mais uma a cada 10 min, colunas `unix_time,percent,charging,wifi,mv,ma,mah,temp_c`, corte em 2800 → 2000
@@ -609,13 +611,31 @@ App local, sem rede:
   suspender (ao entrar em repouso), `2` = última amostra de um despertar programado, antes de voltar a dormir,
   `3` = primeira amostra depois do despertar pelo botão. Linhas com `ev` são gravadas mesmo sem mudança de %
   (o marcador é o ponto), exceto duas iguais no mesmo segundo.
+- **Uma linha por despertar.** O refresh do Bateria (sem marcador) e o hook (`ev` 2) caem no mesmo segundo num
+  despertar programado. `Store:sample` com `ev` troca no lugar (reescreve a última linha do arquivo) a amostra sem
+  marcador gravada até `DEDUP_S` (5 s) antes com o mesmo estado de carga; uma amostra sem marcador logo depois de
+  uma marcada é descartada. Amostras com marcadores diferentes, ou separadas por mais de 5 s (a de 60 s e a entrada
+  em repouso), continuam linhas distintas. Uma linha antiga que não pode ser trocada (arquivo de 4 colunas) é
+  acrescentada normalmente.
 - Estimativa e trechos: o "trecho sem lacuna" (`logic.segments`) agora **também corta depois de uma amostra `ev` 1
   ou 2**, porque despertares de 15 min deixam buracos menores que `GAP_MAX` (25 min) e o consumo suspenso
   (~1 %/h) passaria por consumo acordado. Um trecho que termina num marcador de suspensão nunca é "ao vivo" nem
   entra na corrente média; logo depois de acordar a estimativa usa o último trecho acordado ("salvo") até haver
   dados novos.
-- Estimativa: a do plugin atual (regressão sobre o trecho sem lacuna; trecho anterior calibra), com troca para
-  o contador de carga (`charge_now`, mAh) quando disponível (senão a estimativa usa a porcentagem).
+- Estimativa **acordado** (`logic.estimate`): a do plugin atual (regressão sobre o trecho sem lacuna; trecho
+  anterior calibra), com troca para o contador de carga (`charge_now`, mAh) quando disponível (senão a estimativa
+  usa a porcentagem). Responde "quanto dura com a tela e o Wi-Fi ligados" (~55 mA no KT3), não o que o usuário vive.
+- Estimativa **no ritmo atual** (`logic.estimate_mix`, só descarregando): a carga perdida (mAh quando o medidor
+  expõe; senão %) sobre o **tempo real**, dormindo incluído, desde a última carga, olhando no máximo
+  `MIX_WINDOW` (24 h) para trás; o resto da carga dividido por esse ritmo. A janela começa depois da última linha
+  carregando ou da última subida da carga (recarga que o log não viu, reinício do medidor) e só vale com
+  `MIX_MIN_SPAN` (3 h) e queda mínima (`MIX_MIN_MAH` 15 mAh, ou `MIX_MIN_PCT` 3 % sem mAh); senão cai na estimativa
+  acordado. Limite de `MIX_MAX_ETA` (90 dias).
+- **Qual aparece onde.** O número principal (`cache.eta`: barra de status via `Host.battery_eta`, widgets,
+  página de repouso, notificação de bateria baixa, primeira linha da tela) é o ritmo atual quando existe, senão o
+  acordado. A tela mostra as duas, rotuladas. O cache guarda `eta`, `eta_mix`, `eta_awake`, `ma_mix` e `mix_basis`;
+  a corrente média usa a do ritmo atual quando ele é o principal. Durações a partir de 48 h saem em dias (`~5 d` /
+  `~5 days`, `eta_days`), as outras em `~4h20` / `~12h` / `~25min`.
 - Widgets: 2×2, 4×2 (com gráfico pequeno), 1×1 (porcentagem). No 1×1 (~78 px úteis) o número é só "NN%"
   (fonte menor em "100%"), sem o glifo ⚡ (que estourava a largura e mostrava "…"); carregando é indicado por
   um "+" ao lado do desenho da bateria. Nos outros tamanhos o ⚡ continua no número.
@@ -892,7 +912,7 @@ Sequência do `powerd` (log em `/var/log/messages`): `active` → botão → `sc
   repouso, logo depois de `beforeSleep` e antes do Wi-Fi desligar/suspender (`kind = "sleep"`); ao fim de cada
   despertar programado, depois do lote e do Wi-Fi desligado, antes de voltar a dormir (`"sched"`; no modo
   awake-usb, que não suspende, uma amostra forçada sem marcador); e no despertar pelo botão, antes de voltar à tela
-  (`"button"`). Uma amostra por ponto; uma falha no hook nunca impede dormir ou acordar. Despertares não
+  (`"button"`). Uma amostra por ponto (e uma linha por despertar: o refresh do mesmo instante é absorvido, 10.3); uma falha no hook nunca impede dormir ou acordar. Despertares não
   programados (R-P12) não gravam. As linhas saem marcadas (`ev`, 10.3) para reconhecer os trechos suspensos no CSV.
 - Tinta fechado: nada (a Tinta não roda).
 

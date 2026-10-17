@@ -138,9 +138,23 @@ function M.screen(ctx, box, vm, c, samples, L)
     local stats = ui.hstack(blocks, T.GAP, "start")
     -- note: what the chart shows and where the estimate comes from
     local note_h = T.px(land and 28 or 56)
+    -- the two estimates, labelled: real pace (sleep included) and awake with Wi-Fi; one per line in portrait, one
+    -- line in landscape (nothing while charging or calibrating)
+    local est, est_h = nil, 0
+    local estimates = vm.estimates or {}
+    if #estimates > 0 then
+        local lines = land and { table.concat(estimates, " · ") } or estimates
+        local rows = {}
+        for i, t in ipairs(lines) do
+            rows[i] = ui.text(t, T.FONT_BODY, i == 1, w)
+            est_h = est_h + rows[i]:getSize().h
+        end
+        est = ui.box{ w = w, h = est_h, child = ui.vstack(rows, 0, "start") }
+    end
     -- chart in a framed box, taking what is left
     local frame_pad = T.px(6)
-    local chart_h = math.max(T.px(90), math.min(T.px(300), h - top_h - stats_h - note_h - 3 * T.GAP))
+    local est_room = est and (est_h + T.GAP) or 0
+    local chart_h = math.max(T.px(90), math.min(T.px(300), h - top_h - stats_h - note_h - est_room - 3 * T.GAP))
     local cw, ch = w - 2 * (T.BORDER + frame_pad), chart_h - 2 * (T.BORDER + frame_pad)
     local g = Chart.build(samples, { w = cw, h = ch, left = T.px(56), right = T.px(10), top = T.px(12), bottom = T.px(30), k = T.s })
     local chart_child
@@ -155,14 +169,20 @@ function M.screen(ctx, box, vm, c, samples, L)
         note = ""
     end
     if c and c.basis then
-        local basis = c.kind == "saved" and L("basis_saved") or L(c.basis == "mah" and "basis_mah" or "basis_pct")
+        local b = c.eta_mix and c.mix_basis or c.basis
+        local basis = not c.eta_mix and c.kind == "saved" and L("basis_saved") or L(b == "mah" and "basis_mah" or "basis_pct")
         note = (note ~= "" and (note .. " ") or "") .. basis
     end
     local chart = ui.box{ w = w, h = chart_h, border = T.BORDER, radius = T.RADIUS, pad_x = frame_pad, pad_y = frame_pad,
         child = chart_child }
     local note_w = land and ui.text(note, T.FONT_MIN, false, w) or ui.textbox(note, T.FONT_MIN, w, note_h)
+    local parts = { top }
+    if est then parts[#parts + 1] = est end
+    parts[#parts + 1] = chart
+    parts[#parts + 1] = stats
+    parts[#parts + 1] = ui.box{ w = w, h = note_h, child = note_w }
     return {
-        body = ui.vstack({ top, chart, stats, ui.box{ w = w, h = note_h, child = note_w } }, T.GAP),
+        body = ui.vstack(parts, T.GAP),
     }
 end
 

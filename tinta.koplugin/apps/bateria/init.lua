@@ -123,7 +123,7 @@ return {
 
     -- R-S1: Host.battery_eta(b) calls this through the registry; b = { pct, charging } from KOReader
     battery_eta = function(ctx, b)
-        return Logic.status_eta(last(ctx), b, ctx.now())
+        return Logic.status_eta(last(ctx), b, ctx.now(), ctx.i18n.t)
     end,
 
     -- 16.4: one-time import of the old plugins' logs (A.legacy_logs()) into the tinta's. They had no battery

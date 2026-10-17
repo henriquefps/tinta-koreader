@@ -73,7 +73,7 @@
 073 dados: tinta reloaded on home 3c17d148
 074 dados: restore bad file 495aeae0
 075 dados: bad file confirm 64c78e2d
-076 portrait app bateria bc527ccc
+076 portrait app bateria 1fb28a6c
 077 portrait app relogio 50c33074
 078 portrait app repouso 2c7bea34
 079 portrait app timer 588b0f5c
@@ -118,7 +118,7 @@
 118 landscape launcher: hold adds to Home e21f5191
 119 landscape launcher: marked on Home now e21f5191
 120 landscape launcher: home 18b74a34
-121 landscape app bateria dfaabf3d
+121 landscape app bateria 2a192964
 122 landscape app relogio 0ba50d54
 123 landscape app repouso 05fcb0fd
 124 landscape app timer a40ab068

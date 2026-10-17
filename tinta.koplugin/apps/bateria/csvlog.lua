@@ -82,22 +82,58 @@ function Store:trim(lines)
     if rewrite(self.path, tail) then self.nlines = #tail else self.broken = true end
 end
 
+-- Replaces the last line of the file by `line` when it is still `old` (the file ends with it); false otherwise.
+local function replace_last(path, old, line)
+    local fh = io.open(path, "r+b")
+    if not fh then return false end
+    local ok = pcall(function()
+        local size = fh:seek("end")
+        local from = size - #old - 1
+        assert(from >= 0)
+        fh:seek("set", from)
+        assert(fh:read("*a") == old .. "\n")
+        fh:seek("set", from)
+        fh:write(line, "\n")
+    end)
+    fh:close()
+    return ok
+end
+
 -- Records the reading when it is due (logic.should_log). Returns the sample written, or nil.
 -- r = { pct, charging, wifi, mv, ma, mah, temp }. ev (Logic.EV value) marks a sleep/wake sample: it is written even
--- when nothing changed (the marker is the point), except twice in the same second with the same marker.
+-- when nothing changed (the marker is the point), except twice in the same second with the same marker. One row
+-- per wake-up: a marked sample right after an unmarked one (the refresh of the same wake-up, Logic.DEDUP_S) takes
+-- its place, and an unmarked one right after a marked one is dropped.
 function Store:sample(now, r, ev)
     local pct = math.floor(tonumber(r.pct) + 0.5)
     local charging = r.charging == true
     local last = self.samples[#self.samples]
+    local t = math.floor(now)
+    local replace = nil
     if ev then
-        if last and last.t == math.floor(now) and last.ev == ev then return nil end
+        if last and last.t == t and last.ev == ev then return nil end
+        if last and not last.ev and last.chg == charging and t >= last.t and t - last.t <= Logic.DEDUP_S then
+            replace = last
+        end
+    elseif last and last.ev and t >= last.t and t - last.t <= Logic.DEDUP_S then
+        return nil
     elseif not Logic.should_log(last, now, pct, charging) then
         return nil
     end
-    local s = { t = math.floor(now), pct = pct, chg = charging, wifi = r.wifi == true,
+    local s = { t = t, pct = pct, chg = charging, wifi = r.wifi == true,
         mv = tonumber(r.mv), ma = tonumber(r.ma), mah = tonumber(r.mah), temp = tonumber(r.temp), ev = ev }
-    self.samples[#self.samples + 1] = s
-    if #self.samples > Logic.MAX_SAMPLES then table.remove(self.samples, 1) end
+    local replaced = false
+    if replace then
+        local old = Logic.format_line(replace.t, replace.pct, replace.chg, replace.wifi, replace, replace.ev)
+        self.samples[#self.samples] = s
+        replaced = not self.broken and replace_last(self.path, old, Logic.format_line(s.t, s.pct, s.chg, s.wifi, s, s.ev))
+        if self.broken then return s end
+        if replaced then return s end
+        -- the old line could not be swapped in place (it came from a 4-column file, say): append as usual
+    else
+        self.samples[#self.samples + 1] = s
+        if #self.samples > Logic.MAX_SAMPLES then table.remove(self.samples, 1) end
+    end
     if not self.broken then
         local ok = pcall(function()
             local fh = assert(io.open(self.path, "a"))

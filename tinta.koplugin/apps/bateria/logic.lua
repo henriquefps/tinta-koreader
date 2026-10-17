@@ -22,12 +22,20 @@ M.MIN_SPAN = 900        -- s of data needed before the first estimate
 M.MIN_DROP = 3          -- % lost (discharging) needed before the first %-based estimate
 M.MIN_RISE = 2          -- % gained (charging) needed before the first %-based estimate
 M.MIN_MOVE_MAH = 8      -- mAh moved (~1 %) needed before the first mAh-based estimate (D3)
-M.MAX_ETA = 99 * 3600   -- s: beyond this the estimate means nothing
+M.MAX_ETA = 99 * 3600   -- s: beyond this the awake estimate means nothing
+-- "real pace" estimate (sleep included): drain over wall-clock time since the last charge, up to MIX_WINDOW back
+M.MIX_WINDOW = 24 * 3600    -- s: how far back the real pace looks (older rows are another day's habits)
+M.MIX_MIN_SPAN = 3 * 3600   -- s of discharging needed before the real pace is trusted
+M.MIX_MIN_MAH = 15          -- mAh lost needed (1 mAh steps: ~7 % error at the minimum)
+M.MIX_MIN_PCT = 3           -- % lost needed when the gauge has no mAh
+M.MIX_MAX_ETA = 90 * 86400  -- s: beyond this the real pace estimate means nothing
+M.DEDUP_S = 5               -- s: a marked sample this close after an unmarked one replaces it (one row per wake-up)
 M.CAPACITY = 907        -- mAh: measured full charge of the KT3, when the gauge does not report charge_full
 M.BAND_SPLIT = 65       -- % (R-L4): "high" band at or above, "low" band below
 M.LOW = 20              -- % (8.6): low-battery notification threshold
 M.REPLUG_JUMP = 3       -- %: a rise this big between two discharging readings means it charged in between
 
+M.DAYS_FROM = 48 * 3600    -- s: from here on durations are shown in days
 M.HEADER = "# unix_time,percent,charging,wifi,mv,ma,mah,temp_c,ev"
 
 -- 9th column `ev` (appended; absent = a normal sample): why the sample was written outside the 1-min rhythm.
@@ -190,6 +198,48 @@ function M.estimate(samples, now, pct, charging, gauge)
     return secs, kind, "pct", rate * 3600 * full / 100
 end
 
+-- Real pace (sleep included): the charge lost over wall-clock time on the latest discharge, looking back at most
+-- MIX_WINDOW s and stopping at the last charging row or the last rise of the charge (a recharge the log missed, a
+-- gauge reset). Unlike estimate(), suspend holes are part of the span: it answers "how long does a full day of
+-- my usage last", not "how long awake with Wi-Fi". gauge = { mah = charge now, full = charge_full } as in estimate().
+-- Returns secs, basis ("mah" | "pct"), average current in mA; nil when the span or the drop is too small.
+function M.estimate_mix(samples, now, pct, gauge)
+    pct = tonumber(pct)
+    if not pct or pct <= 0 or type(samples) ~= "table" then return nil end
+    local n = #samples
+    local last = samples[n]
+    if not last or last.chg or now < last.t then return nil end
+    -- walk back to the start of the window
+    local from = n
+    for i = n - 1, 1, -1 do
+        local a, b = samples[i], samples[i + 1]
+        if a.chg or a.t > b.t or a.t < now - M.MIX_WINDOW then break end
+        if a.pct < b.pct or (tonumber(a.mah) and tonumber(b.mah) and a.mah + 1 < b.mah) then break end   -- the charge rose
+        from = i
+    end
+    local first = samples[from]
+    local span = last.t - first.t
+    if span < M.MIX_MIN_SPAN then return nil end
+    local full = gauge and tonumber(gauge.full) or M.CAPACITY
+    local mah_now = gauge and tonumber(gauge.mah)
+    if mah_now then
+        local start                     -- the first row of the window that has the counter
+        for i = from, n do if tonumber(samples[i].mah) then start = samples[i]; break end end
+        local stop                      -- the newest row with the counter
+        for i = n, from, -1 do if tonumber(samples[i].mah) then stop = samples[i]; break end end
+        if start and stop and stop.t - start.t >= M.MIX_MIN_SPAN and start.mah - stop.mah >= M.MIX_MIN_MAH then
+            local rate = (start.mah - stop.mah) / (stop.t - start.t)       -- mAh/s
+            local secs = mah_now / rate
+            if secs > 0 and secs <= M.MIX_MAX_ETA then return secs, "mah", rate * 3600 end
+        end
+    end
+    if first.pct - last.pct < M.MIX_MIN_PCT then return nil end
+    local rate = (first.pct - last.pct) / span                              -- %/s
+    local secs = pct / rate
+    if secs > 0 and secs <= M.MIX_MAX_ETA then return secs, "pct", rate * 3600 * full / 100 end
+    return nil
+end
+
 -- Mean current (mA, absolute) of the current stretch from the gauge readings, over the last WINDOW s; nil without
 -- readings. The screen and the widgets show it ("42 mA em média").
 function M.mean_current(samples, now, charging)
@@ -257,27 +307,34 @@ function M.cycle(store, r, now, prev, L)
     local charging = r.charging == true
     store:sample(now, { pct = pct, charging = charging, wifi = r.wifi, mv = r.mv, ma = r.ma, mah = r.mah, temp = r.temp })
     local samples = store.samples or {}
-    local secs, kind, basis, ma_fit = M.estimate(samples, now, pct, charging, { mah = r.mah, full = r.full_mah })
+    local gauge = { mah = r.mah, full = r.full_mah }
+    local awake, kind, basis, ma_fit = M.estimate(samples, now, pct, charging, gauge)
+    local mix, mix_basis, ma_mix
+    if not charging then mix, mix_basis, ma_mix = M.estimate_mix(samples, now, pct, gauge) end
+    local secs = mix or awake       -- the headline is the real pace when there is one (status bar, widgets, sleep page)
     local cache = {
         pct = pct, charging = charging, full = r.full == true, status = r.status,
-        eta = secs, kind = kind, basis = basis, ma_fit = ma_fit,
+        eta = secs, eta_awake = awake, eta_mix = mix, mix_basis = mix_basis, ma_mix = ma_mix,
+        kind = kind, basis = basis, ma_fit = ma_fit,
         ma_mean = M.mean_current(samples, now, charging),
         ma = r.ma, mv = r.mv, mah = r.mah, full_mah = r.full_mah, temp = r.temp,
         samples = math.max(tonumber(store.nlines) or 0, #samples), at = now,
     }
     local state = M.track(prev, now, pct, charging)
-    return cache, state, M.events(state, cache, M.eta_text(secs), L)
+    return cache, state, M.events(state, cache, M.eta_text(secs, L), L)
 end
 
 ---------------------------------------------------------------- texts
 
--- "~25min", "~4h20", "~12h" (same rounding as core/format.eta, which apps do not require)
-function M.eta_text(secs)
+-- "~25min", "~4h20", "~12h", and with a translator L from 2 days on "~5 d" / "~5 days" (same rounding as
+-- core/format.eta, which apps do not require)
+function M.eta_text(secs, L)
     secs = tonumber(secs)
     if not secs or secs ~= secs or secs < 0 then return nil end
     local min = math.floor(secs / 60 + 0.5)
     if min < 60 then return "~" .. math.max(5, math.floor(min / 5 + 0.5) * 5) .. "min" end
     local h, m = math.floor(min / 60), min % 60
+    if L and secs >= M.DAYS_FROM then return L("eta_days", math.floor(secs / 86400 + 0.5)) end
     if h >= 10 then return "~" .. h .. "h" end
     return string.format("~%dh%02d", h, m)
 end
@@ -303,8 +360,10 @@ function M.view(c, now, L, lang)
             stats = M.stats(c or {}, L, lang) }
     end
     local pct = math.max(0, math.min(100, tonumber(c.pct)))
-    local eta = c.eta and M.eta_text(math.max(0, c.eta - math.max(0, (now or c.at or 0) - (c.at or now or 0)))) or nil
-    local ma = c.ma_mean or (c.ma_fit and math.abs(c.ma_fit)) or (c.ma and math.abs(c.ma)) or nil
+    local age = math.max(0, (now or c.at or 0) - (c.at or now or 0))
+    local function left(secs) return secs and M.eta_text(math.max(0, secs - age), L) or nil end
+    local eta = left(c.eta)
+    local ma = M.avg_ma(c)
     local ma_text = ma and L("ma", math.floor(ma + 0.5)) or nil
     local line, short
     if c.charging then
@@ -323,17 +382,30 @@ function M.view(c, now, L, lang)
             line, short = L("calibrating"), L("calibrating_short")
         end
     end
+    -- the two estimates, labelled (screen): the real pace (sleep included) and awake with Wi-Fi
+    local estimates = {}
+    if not c.charging then
+        local mix, awake = left(c.eta_mix), left(c.eta_awake or (not c.eta_mix and c.eta) or nil)
+        if mix then estimates[#estimates + 1] = L("est_mix", mix) end
+        if awake then estimates[#estimates + 1] = L("est_awake", awake) end
+    end
     local num = pct_text(pct)
     return {
         ok = true, pct = pct, pct_text = num, number = (c.charging and "⚡" or "") .. num,
         charging = c.charging == true,
-        line = line, short = short, eta = eta, stats = M.stats(c, L, lang),
+        line = line, short = short, eta = eta, estimates = estimates, stats = M.stats(c, L, lang),
     }
+end
+
+-- average current (mA) behind the headline: the real pace when that is the headline, else the awake readings
+function M.avg_ma(c)
+    if c.eta_mix and c.ma_mix then return c.ma_mix end
+    return c.ma_mean or (c.ma_fit and math.abs(c.ma_fit)) or (c.ma and math.abs(c.ma)) or nil
 end
 
 -- the four blocks of the screen (10.3): mean current, full capacity, temperature, samples
 function M.stats(c, L, lang)
-    local ma = c.ma_mean or (c.ma_fit and math.abs(c.ma_fit)) or (c.ma and math.abs(c.ma)) or nil
+    local ma = M.avg_ma(c)
     return {
         { ma and L("ma", math.floor(ma + 0.5)) or "--", L("stat_mean") },
         { c.full_mah and tostring(math.floor(c.full_mah + 0.5)) or "--", L("stat_full") },
@@ -342,15 +414,15 @@ function M.stats(c, L, lang)
     }
 end
 
--- status bar estimate (R-S1, Host.battery_eta): "~17h" for the reading b = { pct, charging } from KOReader,
+-- status bar estimate (R-S1, Host.battery_eta): "~17h" or "~5 d" for the reading b = { pct, charging } from KOReader,
 -- from the last estimate when it is recent and of the same charging state; nil otherwise.
 M.STATUS_MAX_AGE = 1800
-function M.status_eta(last, b, now)
+function M.status_eta(last, b, now, L)
     if type(last) ~= "table" or type(b) ~= "table" or not last.eta or not last.at then return nil end
     if (b.charging == true) ~= (last.charging == true) then return nil end
     local age = (now or last.at) - last.at
     if age < 0 or age > M.STATUS_MAX_AGE then return nil end
-    return M.eta_text(math.max(0, last.eta - age))
+    return M.eta_text(math.max(0, last.eta - age), L)
 end
 
 return M
