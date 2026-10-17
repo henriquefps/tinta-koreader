@@ -19,6 +19,13 @@ local function redraw() Host:redraw() end
 
 local function onoff(v, fem) return L(v and (fem and "on_f" or "on") or (fem and "off_f" or "off")) end
 
+-- popup options { value, label } for the values of a Tinta choice setting; label(v) is the text of a value
+local function options_of(values, label)
+    local out = {}
+    for i, v in ipairs(values) do out[i] = { value = v, label = label(v) } end
+    return out
+end
+
 local function window_text(w)
     if type(w) ~= "table" or not w.from then return nil end
     return L(w.weekdays and "window_weekdays" or "window", w.from, w.to or "")
@@ -85,19 +92,19 @@ local function types_text(m)
 end
 
 screens.notifs = function(ctx, args, box)
-    local prios = Host:choices("notify_pref") or { "alta", "normal", "desligada" }
+    local prio_options = options_of(Host:choices("notify_pref") or { "alta", "normal", "desligada" }, function(v) return L("prio_" .. v) end)
     local rows = {}
     for _, m in ipairs(Host:apps()) do
         if m.id ~= "notificacoes" then
             local pref = Host:getPref(m.id)
             rows[#rows + 1] = { title = Host:appName(m.id), sub = types_text(m), right = L("prio_" .. pref),
-                on_tap = function() Host:setPref(m.id, SysLogic.cycle(prios, pref)); redraw() end }
+                on_tap = function() ctx.choose(Host:appName(m.id), prio_options, pref, function(v) Host:setPref(m.id, v); redraw() end) end }
         end
     end
     rows[#rows + 1] = { title = L("banner"), sub = L("banner_sub"), right = onoff(Host:get("banner")),
         on_tap = function() Host:set("banner", not Host:get("banner")); redraw() end }
     rows[#rows + 1] = { title = L("sleep_shows"), sub = L("sleep_shows_sub"), right = L("shows_" .. (Host:get("sleep_shows") or "alta")),
-        on_tap = function() Host:cycle("sleep_shows"); redraw() end }
+        on_tap = function() Host:pickSetting(L("sleep_shows"), "sleep_shows", function(v) return L("shows_" .. v) end) end }
     return { title = L("notifications"), meta = "", body = ctx.ui.rows(box, rows) }
 end
 
@@ -106,6 +113,7 @@ end
 screens.updates = function(ctx, args, box)
     local now = os.time()
     local rows = {}
+    local interval_options = Host:intervalOptions()
     for _, m in ipairs(Host:apps()) do
         if m.refresh then
             local interval = Host:interval(m.id)
@@ -123,7 +131,9 @@ screens.updates = function(ctx, args, box)
             local wt = window_text(Host:appWindow(m.id))
             if wt then sub = sub .. " · " .. wt end
             rows[#rows + 1] = { title = Host:appName(m.id), sub = sub, right = Host:every(interval),
-                on_tap = function() Host:cycleInterval(m.id); redraw() end }
+                on_tap = function()
+                    ctx.choose(Host:appName(m.id), interval_options, interval, function(v) Host:setInterval(m.id, v); redraw() end)
+                end }
         end
     end
     rows[#rows + 1] = { title = L("quiet"), sub = L("quiet_sub"), right = onoff(Host:quietOn()),
@@ -141,16 +151,18 @@ screens.sleep = function(ctx, args, box)
     local rows = {
         { section = L("sec_when") },
         { title = L("idle"), sub = L("idle_sub_" .. mode), right = L("mode_" .. mode),
-          on_tap = function() Host:cycle("idle_mode"); redraw() end },
+          on_tap = function()
+              Host:pickSetting(L("idle"), "idle_mode", function(v) return L("mode_" .. v) end, nil, function(v) return L("idle_sub_" .. v) end)
+          end },
         { title = L("sleep_now"), sub = L("sleep_now_sub"), right = "›", on_tap = function() Host:sleepNow() end },
         { section = L("sec_while") },
         { title = L("wake_screen"), sub = L("wake_screen_sub"), right = L("wake_" .. tostring(wake)),
-          on_tap = function() Host:cycle("wake"); redraw() end },
+          on_tap = function() Host:pickSetting(L("wake_screen"), "wake", function(v) return L("wake_" .. tostring(v)) end) end },
     }
     if mode ~= "never" then
         -- the minutes row only when the mode can sleep by itself; it sits right after the mode row
         table.insert(rows, 3, { title = L("idle_after"), sub = L("idle_after_sub"), right = L("n_min", Host:get("idle_sleep") or 5),
-            on_tap = function() Host:cycle("idle_sleep"); redraw() end })
+            on_tap = function() Host:pickSetting(L("idle_after"), "idle_sleep", function(v) return L("n_min", v) end) end })
     end
     if wake == "schedule" then
         -- the fixed bands of 11.4: plain text, not a row (nothing to tap)
@@ -158,7 +170,7 @@ screens.sleep = function(ctx, args, box)
     end
     rows[#rows + 1] = { title = L("sleep_titles"), sub = L("sleep_titles_sub"),
         right = L("titles_" .. (Host:get("sleep_titles") or "show")),
-        on_tap = function() Host:cycle("sleep_titles"); redraw() end }
+        on_tap = function() Host:pickSetting(L("sleep_titles"), "sleep_titles", function(v) return L("titles_" .. v) end) end }
     rows[#rows + 1] = { title = L("sleep_page"), sub = L("sleep_page_sub", n), right = "›",
         on_tap = function() Host.window:openOrganizer("sleep") end }
     return { title = L("sleep"), meta = "", body = ctx.ui.rows(box, rows) }
@@ -222,14 +234,21 @@ screens.screen = function(ctx, args, box)
     local lang = S.get_lang()
     local rows = {
         { title = L("navigation"), sub = L("navigation_sub"), right = L(nav == "gestures" and "nav_gestures" or "nav_bar"),
-          on_tap = function() Host:cycle("nav"); Host.window:render("full") end },
+          on_tap = function()
+              Host:pickSetting(L("navigation"), "nav", function(v) return L(v == "gestures" and "nav_gestures" or "nav_bar") end,
+                  function() Host.window:render("full") end)
+          end },
         { title = L("orientation"), sub = L("orientation_sub"), right = L(land and "landscape" or "portrait"),
           on_tap = function() Host:rotate() end },
         { title = L("full_refresh"), sub = L("full_refresh_sub"), right = L("every_n", Host:fullEvery()) },
         { title = L("lang"), sub = S.LANG_NAMES[lang] or lang, right = lang,
-          on_tap = function() Host:cycle("lang"); Host.window:render("full") end },
+          on_tap = function()
+              Host:pickSetting(L("lang"), "lang", function(v) return S.LANG_NAMES[v] or v end, function() Host.window:render("full") end)
+          end },
         { title = L("text_size"), sub = L("text_size_sub"), right = L("text_" .. (Host:get("text_size") or "normal")),
-          on_tap = function() Host:cycle("text_size"); Host.window:render("full") end },
+          on_tap = function()
+              Host:pickSetting(L("text_size"), "text_size", function(v) return L("text_" .. v) end, function() Host.window:render("full") end)
+          end },
     }
     return { title = L("screen"), meta = "", body = ctx.ui.rows(box, rows, { two_cols = false }) }
 end
@@ -292,7 +311,9 @@ screens.app = function(ctx, args, box)
         -- not loaded: nothing to configure; only removal below
     elseif m.refresh then
         rows[#rows + 1] = { title = L("interval"), sub = L("interval_sub"), right = Host:every(Host:interval(id)),
-            on_tap = function() Host:cycleInterval(id); redraw() end }
+            on_tap = function()
+                ctx.choose(L("interval"), Host:intervalOptions(), Host:interval(id), function(nv) Host:setInterval(id, nv); redraw() end)
+            end }
     end
     if m then
         -- 8.5: the core handles this option for every app; `sensitive` apps start hidden
@@ -307,9 +328,13 @@ screens.app = function(ctx, args, box)
         if f.type == "bool" then
             row.on_tap = function() Host:setAppSetting(id, f.key, not v); redraw() end
         elseif f.type == "choice" and type(f.choices) == "table" and #f.choices > 0 then
-            local values = {}
-            for i, ch in ipairs(f.choices) do values[i] = type(ch) == "table" and ch.value or ch end
-            row.on_tap = function() Host:setAppSetting(id, f.key, SysLogic.cycle(values, v)); redraw() end
+            local options = {}
+            for i, ch in ipairs(f.choices) do
+                options[i] = type(ch) == "table" and { value = ch.value, label = ch.label or tostring(ch.value) } or { value = ch, label = tostring(ch) }
+            end
+            row.on_tap = function()
+                ctx.choose(f.label or f.key, options, v, function(nv) Host:setAppSetting(id, f.key, nv); redraw() end)
+            end
         else
             row.on_tap = function()
                 -- R-C2: a token is never shown; the box opens empty and empty keeps the current one

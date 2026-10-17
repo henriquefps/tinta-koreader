@@ -23,6 +23,8 @@ local Draw = require("ui/draw")
 local G = require("ui/geom")
 local Gestures = require("ui/gestures")
 local NavBar = require("ui/navbar")
+local Picker = require("ui/picker")
+local PickLogic = require("ui/picklogic")
 local S = require("ui/strings")
 local Sheet = require("ui/sheet")
 local StatusBar = require("ui/statusbar")
@@ -39,6 +41,8 @@ function Window:init()
     self.stack = { { kind = "home", page = 0 } }
     self.menu_open = false
     self.dialog = nil      -- { title, text, ok_label, on_ok }
+    self.picker = nil      -- choice popup: see Window:pick
+    self.renders = 0
     self.toast_text = nil
     self.banner = nil      -- { head, title, on_tap }
     self.hot = {}
@@ -95,6 +99,7 @@ end
 -- a full one every FULL_EVERY partials).
 function Window:render(mode)
     if self.closed then return end
+    self.renders = self.renders + 1
     -- 7.5: however the wizard was left (its buttons, the navigation bar, the back gesture) it is done for good
     if self.host.first_run and not self:inWizard() then self.host:finishFirstRun() end
     self:updateDimen()
@@ -237,7 +242,7 @@ end
 function Window:navState()
     return {
         home_enabled = not self:isHome() or (self:current().page or 0) > 0 or self.menu_open,
-        back_enabled = #self.stack > 1 or self.menu_open or self.dialog ~= nil,
+        back_enabled = #self.stack > 1 or self.menu_open or self.dialog ~= nil or self.picker ~= nil,
     }
 end
 
@@ -256,7 +261,7 @@ function Window:addOverlays(layers, regions)
     local level = 0
     local function add(list) for _, l in ipairs(list) do layers[#layers + 1] = l end end
     local function next_layer() level = level + 1; Draw.set_layer(level) end
-    if self.banner and not self.menu_open and not self.dialog then
+    if self.banner and not self.menu_open and not self.dialog and not self.picker then
         next_layer()
         add(Banner.layers(regions, self.banner, self:protect(self.banner.on_tap)))
     end
@@ -278,20 +283,36 @@ function Window:addOverlays(layers, regions)
             end,
         }))
     end
+    if self.picker then
+        local p = self.picker
+        next_layer()
+        local options = PickLogic.normalize(type(p.options) == "function" and p.options() or p.options)
+        local layers_, page = Picker.layers(regions, {
+            title = p.title, options = options, current = p.current, page = p.page,
+            footer = p.done_label, empty = p.empty,
+        }, {
+            on_pick = function(opt) self:pickChosen(opt) end,
+            on_cancel = function() self:closePicker() end,
+            on_page = function(d) p.page = (p.page or 0) + d; self:render("partial") end,
+            on_footer = function() self:closePicker() end,
+        })
+        p.page = page
+        add(layers_)
+    end
     if self.toast_text then add(Toast.layers(regions, self.toast_text)) end
     Draw.set_layer(0)
 end
 
 function Window:openMenu()
     self.menu_open = true
-    self.dialog = nil
+    self.dialog, self.picker = nil, nil
     self:render("partial")
 end
 
--- closes the menu and the dialog; returns true when there was something to close
+-- closes the menu, the dialog and the popup; returns true when there was something to close
 function Window:closeOverlays(no_render)
-    local had = self.menu_open or self.dialog ~= nil
-    self.menu_open, self.dialog = false, nil
+    local had = self.menu_open or self.dialog ~= nil or self.picker ~= nil
+    self.menu_open, self.dialog, self.picker = false, nil, nil
     if had and not no_render then self:render("partial") end
     return had
 end
@@ -299,8 +320,38 @@ end
 -- d = { title, text, ok_label, on_ok, owner }
 function Window:confirm(d)
     self.menu_open = false
+    self.picker = nil
     self.dialog = d
     self:render("partial")
+end
+
+-- Choice popup (6.10). d = { title, options, current, on_pick(value), owner?, keep_open?, done_label?, empty? }
+-- options: values or { value, label?, sub? } (see ui/picklogic), or a function returning them (read at every build,
+-- for popups that stay open and change under the user's finger). A tap on an option runs on_pick(value) and closes
+-- the popup, unless keep_open (then `done_label` closes it); tapping outside, Voltar and the back gesture cancel.
+function Window:pick(d)
+    if not d or type(d.on_pick) ~= "function" then return end
+    if type(d.options) ~= "function" and #PickLogic.normalize(d.options) == 0 then return end
+    self.menu_open, self.dialog = false, nil
+    self.picker = { title = d.title, options = d.options, current = d.current, on_pick = d.on_pick, owner = d.owner,
+        keep_open = d.keep_open, done_label = d.done_label, empty = d.empty }
+    self:render("partial")
+end
+
+function Window:closePicker()
+    if not self.picker then return end
+    self.picker = nil
+    self:render("partial")
+end
+
+-- an option was tapped: save through the caller's callback (protected), then close or refresh the popup
+function Window:pickChosen(opt)
+    local p = self.picker
+    if not p then return end
+    if not p.keep_open then self.picker = nil end
+    local before = self.renders
+    self:protect(p.on_pick, p.owner)(opt.value)
+    if self.renders == before and not self.closed then self:render("partial") end
 end
 
 -- Named showToast, never "toast": UIManager treats any window with a truthy .toast field as a toast and keeps it
@@ -466,7 +517,7 @@ local function hold_interval_ms()
 end
 
 function Window:onTintaHold(_, ges)
-    if self.host:isSleeping() or self.dialog or self.menu_open then return true end
+    if self.host:isSleeping() or self.dialog or self.menu_open or self.picker then return true end
     self.host:touched()
     local pos = ges and ges.pos
     if not pos then return true end
@@ -510,7 +561,7 @@ function Window:onTintaSwipe(_, ges)
         direction = ges.direction, distance = ges.distance }
     if ges.end_pos then ev.x1, ev.y1 = ges.end_pos.x - ox, ges.end_pos.y - oy end
     local action = Gestures.classify(ev, { W = bw, H = bh,
-        home = self:isHome() and not self.menu_open and not self.dialog })
+        home = self:isHome() and not self.menu_open and not self.dialog and not self.picker })
     if action == "home" then self:goHome()
     elseif action == "back" then self:back()
     elseif action == "central" then self:closeOverlays(true); self:openCentral()
@@ -521,7 +572,7 @@ function Window:onTintaSwipe(_, ges)
 end
 
 function Window:onTintaBack()
-    if #self.stack > 1 or self.menu_open or self.dialog then self:back() else self.host:close() end
+    if #self.stack > 1 or self.menu_open or self.dialog or self.picker then self:back() else self.host:close() end
     return true
 end
 

@@ -92,6 +92,12 @@ function Host:open(opts)
                     if self.window then self.window:confirm{ title = title, text = text, ok_label = ok_label, on_ok = fn, owner = id } end
                 end,
                 toast = function(text) if self.window then self.window:showToast(text) end end,
+                -- choice popup (6.10): options = values or { value, label?, sub? }; on_pick(value) runs after the tap
+                choose = function(title, options, current, on_pick)
+                    if self.window then
+                        self.window:pick{ title = title, options = options, current = current, on_pick = on_pick, owner = id }
+                    end
+                end,
                 redraw = function() self:redraw() end,
                 back = function() if self.window then self.window:back() end end,
                 -- text input with the KOReader keyboard (11.7 / CORE_CALLS): on_save(text) -> true | false, message
@@ -376,6 +382,26 @@ function Host:interval(id)
 end
 
 function Host:cycleInterval(id) return C.cycle_interval(self.c, id) end
+function Host:setInterval(id, v) return C.set_interval(self.c, id, v) end
+-- the intervals of R-U1 as popup options { value, label }
+function Host:intervalOptions()
+    local out = {}
+    for i, v in ipairs(C.intervals()) do out[i] = { value = v, label = self:every(v) } end
+    return out
+end
+
+-- Choice popup (6.10) for a Tinta choice setting: the CHOICES list of the key, `label(v)` per value, a pick saves it
+-- (through Host:set, which applies language and text size) and redraws. `after` overrides the redraw.
+function Host:pickSetting(title, key, label, after, sub)
+    if not self.window then return end
+    local options = {}
+    for i, v in ipairs(self:choices(key) or {}) do options[i] = { value = v, label = label(v), sub = sub and sub(v) or nil } end
+    self.window:pick{ title = title, options = options, current = self:get(key), owner = "sistema",
+        on_pick = function(v)
+            self:set(key, v)
+            if after then after() else self:redraw() end
+        end }
+end
 function Host:appWindow(id) return C.window(self.c, id) end
 function Host:status(id) return C.status(self.c, id, now()) end
 function Host:state(id) return C.state(self.c, id) end
@@ -697,8 +723,8 @@ function Host:menuItems(win)
         local name = self:appName(id)
         items[#items + 1] = { S.t("menu_refresh_app", name), nil, close_then(function() self:refresh({ id }, "manual") end) }
         items[#items + 1] = { S.t("menu_interval"), self:every(self:interval(id)), function()
-            self:cycleInterval(id)
-            win:render("partial")
+            win:pick{ title = S.t("menu_interval"), options = self:intervalOptions(), current = self:interval(id), owner = id,
+                on_pick = function(v) self:setInterval(id, v) end }
         end }
     end
     if win:isHome() then

@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: AGPL-3.0-or-later
 -- Copyright (C) 2026 Tinta contributors
--- Tinta: tests of the pure UI helpers (ui/geom, ui/gestures, ui/orglogic, ui/paging, ui/shapes,
+-- Tinta: tests of the pure UI helpers (ui/geom, ui/gestures, ui/orglogic, ui/paging, ui/picklogic, ui/shapes,
 -- ui/strings) and of the Sistema app rules. No KOReader. Run from the repo root:
 --   luajit tests/tinta_ui_test.lua
 -- Exits non-zero on failure; returns passed, failed when required by another runner.
@@ -10,6 +10,7 @@ local Geom = require("ui/geom")
 local Gestures = require("ui/gestures")
 local Org = require("ui/orglogic")
 local Paging = require("ui/paging")
+local Pick = require("ui/picklogic")
 local Shapes = require("ui/shapes")
 local Strings = require("ui/strings")
 local Theme = require("ui/theme")
@@ -234,6 +235,54 @@ do
     eq("flow: header stays with its row (2 cols)", flat(Paging.flow({ 64, 30, 64 }, { false, true }, 110, 4, 2)), "1|2,3")
     eq("flow: oversize item sits alone", flat(Paging.flow({ 300, 64 }, nil, 100, 4, 1)), "1;2")
     eq("flow: empty", flat(Paging.flow({}, nil, 100, 4, 1)), "")
+end
+
+---------------------------------------------------------------- choice popup (6.10)
+
+do
+    -- options: plain values, { value, label, sub } tables, and junk that is left out
+    local o = Pick.normalize({ 300, { value = "b", label = "modo B", sub = "x" }, { 7, "sete" }, "texto", {}, false })
+    eq("popup: options normalized (junk and empty tables dropped)", #o, 5)
+    eq("popup: a plain value is its own label", o[1].label, "300")
+    eq("popup: table label and sub", o[2].label .. "/" .. o[2].sub, "modo B/x")
+    eq("popup: value at [1], label at [2]", o[3].value .. "/" .. o[3].label, "7/sete")
+    eq("popup: a string option", o[4].value .. "/" .. o[4].label, "texto/texto")
+    eq("popup: false is a value too", tostring(o[5].value), "false")
+    eq("popup: nothing in, nothing out", #Pick.normalize(nil), 0)
+
+    local opts = Pick.normalize({ 900, 1800, 3600, "schedule", "never" })
+    eq("popup: current position", Pick.index_of(opts, 3600), 3)
+    eq("popup: string current", Pick.index_of(opts, "never"), 5)
+    eq("popup: unknown current -> none", tostring(Pick.index_of(opts, 5)), "nil")
+    eq("popup: no current -> none", tostring(Pick.index_of(opts, nil)), "nil")
+    check("popup: is_current marks only the equal value", Pick.is_current(opts[2], 1800) and not Pick.is_current(opts[1], 1800)
+        and not Pick.is_current(opts[1], nil))
+    check("popup: a number is not its text", not Pick.is_current(opts[2], "1800"))
+
+    -- rows per page: all of them when they fit, otherwise the pager takes its height first, never fewer than one
+    eq("popup: 5 rows fit in 340", Pick.per_page(5, 340, 64, 4, 72), 5)
+    eq("popup: 6 rows do not fit in 340, 4 + the pager do", Pick.per_page(6, 340, 64, 4, 72), 4)
+    eq("popup: 6 rows fit in 410", Pick.per_page(6, 410, 64, 4, 72), 6)
+    eq("popup: tiny space still gives one row", Pick.per_page(9, 10, 64, 4, 72), 1)
+    eq("popup: the pager is not reserved when everything fits", Pick.per_page(4, 270, 64, 4, 72), 4)
+
+    local many = Pick.normalize({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 })
+    eq("popup: opens on the page of the current option", Pick.start_page(many, 7, 4), 1)
+    eq("popup: first page for the first option", Pick.start_page(many, 1, 4), 0)
+    eq("popup: last page for the last option", Pick.start_page(many, 10, 4), 2)
+    eq("popup: unknown current -> page 0", Pick.start_page(many, 99, 4), 0)
+    eq("popup: a lone page", Pick.start_page(many, 10, 10), 0)
+    local items, page, pages = Pick.page(many, 1, 4)
+    eq("popup: page 1 holds options 5-8", items[1].value .. "-" .. items[#items].value, "5-8")
+    eq("popup: page and page count", page .. "/" .. pages, "1/3")
+    items, page = Pick.page(many, 2, 4)
+    eq("popup: last page is short", #items, 2)
+    items, page = Pick.page(many, 9, 4)
+    eq("popup: a page past the end clamps to the last", page .. ":" .. items[1].value, "2:9")
+    items, page = Pick.page(many, -3, 4)
+    eq("popup: a negative page clamps to the first", page .. ":" .. items[1].value, "0:1")
+    items, page, pages = Pick.page({}, 0, 4)
+    eq("popup: no options -> one empty page", #items .. "/" .. page .. "/" .. pages, "0/0/1")
 end
 
 ---------------------------------------------------------------- shapes

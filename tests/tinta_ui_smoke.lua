@@ -358,6 +358,13 @@ local function swipe(x0, y0, x1, y1)
     win:onTintaSwipe(nil, { pos = { x = x0, y = y0 }, end_pos = { x = x1, y = y1 } })
 end
 local function top() return win:current() end
+-- choice popup (6.10): taps the row `row` (opens the popup), checks the popup is up, then taps the option `option`
+local function pick(row, option, title)
+    check("popup opens from " .. row, tap_text(row) and win.picker ~= nil and (not title or contains_text(win[1], title)), row)
+    check("popup shows " .. option, contains_text(win[1], option), option)
+    check("popup option " .. option .. " taps", tap_text(option), option)
+    check("popup closed after " .. option, win.picker == nil)
+end
 
 -- SMOKE_APP=<id> (the template `_modelo`, or an app made by scripts/nova-app.sh): a short flow for that one app instead
 -- of the main flow, which is pinned to the repo's own apps (a new app moves the launcher pages and the KT3 hashes)
@@ -440,7 +447,14 @@ step("back swipe from left edge", function() swipe(10, 400, 300, 400) end)
 check("back pops", #win.stack == 2)
 step("menu opens", function() check("tap menu", tap_text("Menu")) end)
 check("menu has app items", win.menu_open and contains_text(win[1], "Atualizar Teste OK agora"))
-step("interval cycles", function() tap_text("Intervalo desta app") end)
+step("interval picked from the popup", function()
+    check("tap interval", tap_text("Intervalo desta app"))
+    check("interval popup is up, the menu is gone", win.picker ~= nil and not win.menu_open and contains_text(win[1], "a cada 15 min"))
+    check("current interval marked", contains_text(win[1], "●"))
+    check("tap 5 min", tap_text("a cada 5 min"))
+    check("popup closed", win.picker == nil)
+    win:openMenu()      -- back to the menu for the next step
+end)
 check("interval 60 -> 300", Host:interval("_test_ok") == 300, Host:interval("_test_ok"))
 step("tap outside menu closes", function() tap_xy(300, 100) end)
 check("menu closed", not win.menu_open)
@@ -518,10 +532,24 @@ step("organizer: hide", function() tap_text("Ocultar") end)
 check("hidden saved (R-O6)", (function()
     for _, it in ipairs(Host:layout("home")) do if it.app == "_test_ok" then return it.hidden end end
 end)())
-step("organizer: unhide from Ocultas", function() check("tap hidden app", tap_text("Teste OK")) end)
+step("organizer: hidden popup adds the app", function()
+    check("Ocultos button", tap_text("Ocultos ("))
+    check("popup lists the hidden app", win.picker ~= nil and contains_text(win[1], "Apps ocultas") and contains_text(win[1], "Teste OK"))
+    check("tap hidden app", tap_text("Teste OK"))
+    check("popup stays open, shows the toast", win.picker ~= nil and win.toast_text == "Teste OK adicionada", win.toast_text)
+    check("Pronto closes the popup", tap_text("Pronto") and win.picker == nil)
+end)
+check("unhidden at once (R-O6)", (function()
+    for _, it in ipairs(Host:layout("home")) do if it.app == "_test_ok" then return not it.hidden end end
+end)())
 step("organizer: sleep tab", function() tap_text("Repouso", true) end)
 check("sleep tab", top().mode == "sleep")
-step("organizer: add to sleep", function() tap_text("Teste OK") end)
+step("organizer: add to sleep", function()
+    check("Ocultos button", tap_text("Ocultos ("))
+    check("sleep popup title", win.picker ~= nil and contains_text(win[1], "Apps fora do Repouso"))
+    check("tap the app", tap_text("Teste OK"))
+    tap_text("Pronto")
+end)
 step("organizer: hide sistema warns", function()
     top().mode = "home"; top().sel = "sistema"; win:render("partial"); tap_text("Ocultar")
 end)
@@ -536,8 +564,6 @@ for _, s in ipairs(sys_screens) do
 end
 step("sistema app settings", function() win:openApp("sistema", "app", { id = "_test_ok" }) end)
 check("settings fields", contains_text(win[1], "Servidor de teste") and contains_text(win[1], "não definido"))
-step("bool setting toggles", function() tap_text("Opção") end)
-step("choice cycles", function() tap_text("Modo") end)
 -- pages forward (tap ›) until `text` is on screen
 local function to_text(text)
     for _ = 1, 8 do
@@ -546,6 +572,9 @@ local function to_text(text)
     end
     return contains_text(win[1], text)
 end
+step("bool setting toggles", function() tap_text("Opção") end)
+step("choice picked from the popup", function() check("Modo row", to_text("Modo")); pick("Modo", "modo B", "modo A") end)
+check("choice saved", Host:appSetting("_test_ok", "mode") == "b", Host:appSetting("_test_ok", "mode"))
 -- 10.5 turn an app off and on, launcher row, removal guards (nothing is deleted: the dialog is cancelled)
 step("app screen: Estado row", function() win:openApp("sistema", "app", { id = "_test_ok" }) end)
 check("app screen shows Ativada and Remover app", contains_text(win[1], "Ativada") and to_text("Remover app"))   -- may be on page 2 at some sizes
@@ -583,16 +612,17 @@ do
     Host.c.registry:forget("_futura")
 end
 run_scheduled(); win:render("partial")      -- let the toasts of this section expire
-step("notif prefs cycle", function() win:openApp("sistema", "notifs"); tap_text("Teste OK") end)
+step("notif prefs popup", function() win:openApp("sistema", "notifs"); pick("Teste OK", "normal") end)
 check("pref cycled", Host:getPref("_test_ok") == "normal", Host:getPref("_test_ok"))
 step("navigation gestures only", function()
-    win:openApp("sistema", "screen"); tap_text("Navegação")
+    win:openApp("sistema", "screen"); pick("Navegação", "só gestos")
 end)
 check("nav gestures", Host:get("nav") == "gestures")
 step("home with handle", function() win:goHome() end)
-step("navigation back to bar", function() win:openApp("sistema", "screen"); tap_text("Navegação") end)
-step("language en", function() tap_text("Idioma") end)
-step("language back to pt", function() tap_text("Language") end)
+step("navigation back to bar", function() win:openApp("sistema", "screen"); pick("Navegação", "barra + gestos") end)
+step("language en", function() pick("Idioma", "English") end)
+check("language is en", Host:get("lang") == "en", Host:get("lang"))
+step("language back to pt", function() pick("Language", "Português") end)
 
 -- Dados (10.5): diagnostic export, settings backup and restore, with a token that must never be written
 do
@@ -849,20 +879,22 @@ check("repouso: the schedule shows as plain text (default 'pelo horário')", con
 check("repouso: the schedule lines are not tappable", not tap_text("dias úteis 07:30–18:30 a cada 30 min"))
 check("repouso: no old rows", not contains_text(win[1], "Agenda por horário") and not contains_text(win[1], "Acordar para atualizar")
     and not contains_text(win[1], "Entrar sozinho"))
-step("repouso: wake cycles to nunca", function() tap_text("Atualizar a tela") end)
+step("repouso: wake picked nunca", function() pick("Atualizar a tela", "nunca") end)
 check("repouso: nunca", Host:get("wake") == "never" and contains_text(win[1], "nunca") and not contains_text(win[1], "23:00–07:30 não atualiza"))
-step("repouso: wake cycles to 15 min", function() tap_text("Atualizar a tela") end)
+step("repouso: wake picked 15 min", function() pick("Atualizar a tela", "a cada 15 min") end)
 check("repouso: 15 min", Host:get("wake") == 900 and contains_text(win[1], "a cada 15 min") and not contains_text(win[1], "horários fixos"))
-for _, want in ipairs({ 1800, 3600, 7200, "schedule" }) do
-    step("repouso: wake -> " .. tostring(want), function() tap_text("Atualizar a tela") end)
+for _, want in ipairs({ { 1800, "a cada 30 min" }, { 3600, "a cada 1 h" }, { 7200, "a cada 2 h" }, { "schedule", "pelo horário" } }) do
+    local label
+    want, label = want[1], want[2]
+    step("repouso: wake -> " .. tostring(want), function() pick("Atualizar a tela", label) end)
     check("repouso: wake is " .. tostring(want), Host:get("wake") == want, Host:get("wake"))
 end
-step("repouso: mode cycles to nunca", function() tap_text("Dormir sozinho") end)
+step("repouso: mode picked nunca", function() pick("Dormir sozinho", "nunca") end)
 check("repouso: mode never hides the minutes row", Host:get("idle_mode") == "never" and contains_text(win[1], "não dorme sozinho")
     and not contains_text(win[1], "Depois de"))
-step("repouso: mode cycles to sempre", function() tap_text("Dormir sozinho") end)
+step("repouso: mode picked sempre", function() pick("Dormir sozinho", "sempre") end)
 check("repouso: mode always shows the minutes row", Host:get("idle_mode") == "always" and contains_text(win[1], "Depois de"))
-step("repouso: minutes cycle", function() tap_text("Depois de") end)
+step("repouso: minutes picked 10", function() pick("Depois de", "10 min") end)
 check("repouso: minutes 10", Host:get("idle_sleep") == 10 and contains_text(win[1], "10 min"))
 step("repouso: back to 5 min, battery", function() Host:set("idle_sleep", 5); Host:set("idle_mode", "battery"); win:render("full") end)
 step("Sistema row shows the summary", function() win:goHome(); win:openApp("sistema", "main") end)
@@ -1009,6 +1041,112 @@ do
     end
     check("errors of the failing app are logged", failing >= 4, failing)
     check("no unexpected errors in the Tinta log", #unexpected == 0, unexpected[1])
+end
+
+-- Choice popup (6.10) from the Sistema rows and the organizer, portrait and landscape: opens with the current option marked,
+-- a pick saves and closes, a tap outside / Voltar / the back gesture cancel, long lists page
+do
+    local function popup_has(text)
+        paint()
+        for _, b in ipairs(win.hot) do
+            if b.painted and b.layer > 0 and b.on_tap and contains_text(b, text) then return true end
+        end
+        return false
+    end
+    -- opens the popup from `row`, turns its pages until `option` is shown, taps it
+    local function pick_paged(row, option)
+        check("popup opens from " .. row, tap_text(row) and win.picker ~= nil)
+        for _ = 1, 4 do
+            if popup_has(option) then break end
+            tap_text("›")
+        end
+        check("popup shows " .. option, popup_has(option), option)
+        tap_text(option)
+        check("popup closed after " .. option, win.picker == nil)
+    end
+    Host:set("wake", "schedule"); Host:set("idle_mode", "battery"); Host:set("idle_sleep", 5); Host:set("lang", "pt")
+    for _, land in ipairs({ false, true }) do
+        local tag = land and "landscape" or "portrait"
+        if land then step("popup: rotate to landscape", function() Host:rotate() end) end
+        step("popup " .. tag .. ": Atualizar a tela opens", function()
+            win:goHome(); win:openApp("sistema", "sleep"); check("tap row", tap_text("Atualizar a tela"))
+        end)
+        check(tag .. ": popup up with the title, the current option marked", win.picker ~= nil and contains_text(win[1], "pelo horário")
+            and win.picker.current == "schedule" and popup_has("●"))
+        step("popup " .. tag .. ": tap outside cancels", function() tap_xy(land and 10 or 10, 300) end)
+        check(tag .. ": cancelled, nothing changed", win.picker == nil and Host:get("wake") == "schedule" and top().screen == "sleep")
+        step("popup " .. tag .. ": Voltar cancels", function() tap_text("Atualizar a tela"); tap_text("Voltar") end)
+        check(tag .. ": Voltar closed only the popup", win.picker == nil and Host:get("wake") == "schedule" and top().screen == "sleep" and #win.stack == 2)
+        step("popup " .. tag .. ": back gesture cancels", function() tap_text("Atualizar a tela"); swipe(10, 400, 300, 400) end)
+        check(tag .. ": back gesture closed only the popup", win.picker == nil and top().screen == "sleep" and #win.stack == 2)
+        step("popup " .. tag .. ": pick nunca (paged when it does not fit)", function() pick_paged("Atualizar a tela", "nunca") end)
+        check(tag .. ": wake saved", Host:get("wake") == "never", Host:get("wake"))
+        step("popup " .. tag .. ": Dormir sozinho", function() pick_paged("Dormir sozinho", "sempre") end)
+        check(tag .. ": mode saved, minutes row shown", Host:get("idle_mode") == "always" and contains_text(win[1], "Depois de"))
+        step("popup " .. tag .. ": Depois de", function() pick_paged("Depois de", "15 min") end)
+        check(tag .. ": minutes saved", Host:get("idle_sleep") == 15, Host:get("idle_sleep"))
+        step("popup " .. tag .. ": language opens", function() win:openApp("sistema", "screen"); check("tap row", tap_text("Idioma")) end)
+        check(tag .. ": language popup", win.picker ~= nil and popup_has("English") and popup_has("Português"))
+        step("popup " .. tag .. ": language picked", function() tap_text("English") end)
+        check(tag .. ": language en", Host:get("lang") == "en" and win.picker == nil)
+        step("popup " .. tag .. ": language back", function() pick_paged("Language", "Português") end)
+        check(tag .. ": language pt", Host:get("lang") == "pt")
+        Host:set("wake", "schedule"); Host:set("idle_mode", "battery"); Host:set("idle_sleep", 5)
+
+        -- organizer: the hidden-apps popup adds apps back and stays open (the popup pages: many apps are not on the Home list)
+        local saved_home = Host:layout("home")
+        local function extras_n()
+            for n = 0, 40 do
+                if contains_text(win[1], "Ocultos (" .. n .. ")") then return n end
+            end
+        end
+        local function popup_tap(text)       -- turns the popup pages (forward, then back) until `text` is on one, taps it
+            for _, arrow in ipairs({ "›", "‹" }) do
+                for _ = 1, 8 do
+                    if popup_has(text) then tap_text(text); return true end
+                    if not tap_text(arrow) then break end
+                end
+            end
+            return false
+        end
+        local hidden, n0 = {}, 0
+        step("popup " .. tag .. ": organizer with two hidden apps", function()
+            win:goHome()
+            local l = Host:layout("home")
+            for _, it in ipairs(l) do
+                if #hidden < 2 and it.app ~= "sistema" and Host:app(it.app) and not it.hidden then it.hidden = true; hidden[#hidden + 1] = it.app end
+            end
+            Host:saveLayout("home", l)
+            win:openOrganizer("home")
+            n0 = extras_n() - 2
+        end)
+        check(tag .. ": organizer button counts the two", #hidden == 2 and n0 >= 0 and extras_n() == n0 + 2, tostring(n0))
+        step("popup " .. tag .. ": Ocultos opens the list", function() check("tap Ocultos", tap_text("Ocultos (" .. (n0 + 2) .. ")")) end)
+        check(tag .. ": titled, Pronto there", win.picker ~= nil and contains_text(win[1], "Apps ocultas") and popup_has("Pronto"))
+        step("popup " .. tag .. ": first app added", function() check("tap " .. hidden[1], popup_tap(Host:appName(hidden[1]))) end)
+        check(tag .. ": popup stays open, one fewer, toast", win.picker ~= nil and extras_n() == n0 + 1
+            and win.toast_text == Host:appName(hidden[1]) .. " adicionada" and top().sel == hidden[1], tostring(win.toast_text))
+        step("popup " .. tag .. ": second app added", function() check("tap " .. hidden[2], popup_tap(Host:appName(hidden[2]))) end)
+        check(tag .. ": both added, popup still open", win.picker ~= nil and extras_n() == n0)
+        step("popup " .. tag .. ": add the rest, list gets empty", function()
+            for _ = 1, 40 do
+                if extras_n() == 0 then break end
+                local first
+                paint()
+                for _, b in ipairs(win.hot) do
+                    if b.painted and b.layer > 0 and b.on_tap and b.h == T.ROW_H and (not first or b.dimen.y < first.dimen.y) then first = b end
+                end
+                if not first then break end
+                win:onTintaTap(nil, { pos = { x = first.dimen.x + math.floor(first.w / 2), y = first.dimen.y + math.floor(first.h / 2) } })
+            end
+        end)
+        check(tag .. ": empty text and Pronto", win.picker ~= nil and extras_n() == 0 and contains_text(win[1], "Nenhuma app oculta.") and popup_has("Pronto"))
+        step("popup " .. tag .. ": Pronto closes it", function() tap_text("Pronto") end)
+        check(tag .. ": closed, button disabled", win.picker == nil and extras_n() == 0 and not tap_text("Ocultos (0)"))
+        Host:saveLayout("home", saved_home)
+        run_scheduled(); win:render("partial")      -- let the toast expire
+    end
+    step("popup: rotate back to portrait", function() Host:rotate(); win:goHome() end)
 end
 
 step("close", function() Host:close() end)

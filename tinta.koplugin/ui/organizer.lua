@@ -4,7 +4,8 @@
 -- list (R-O2: opens on the page of the selected widget; the selection stays when another page is shown, and
 -- "↑ Antes" / "↓ Depois" move the widget through the whole list, so it crosses page breaks), "Copiar do Início"
 -- on the sleep tab (copies Home page 1, with confirmation),
--- "↑ Antes", "↓ Depois", "Tamanho ▸", "Ocultar"/"Tirar", "Pronto" (R-O3), hidden / addable apps (R-O4).
+-- "↑ Antes", "↓ Depois", "Tamanho ▸", "Ocultar"/"Tirar", "Pronto" (R-O3), "Ocultos (N)" (R-O4: a popup that adds the
+-- hidden / addable apps back, staying open for several).
 -- Every change is saved at once (R-O6). Landscape: map on the left, controls in a column on the right.
 local Button = require("ui/button")
 local Draw = require("ui/draw")
@@ -116,38 +117,37 @@ function M.build(win, regions, route)
         end }
     end
     if landscape then
-        -- one button per line in the side column
-        local col = {}
-        for _, b in ipairs(b1) do col[#col + 1] = Button.new{ label = b[1], on_tap = b[2], disabled = b.disabled, w = ctrl_w } end
-        row1 = Draw.vstack(col, T.GAP)
+        -- side column: Antes / Depois side by side, Tamanho on its own line (the column has to fit Ocultos (N) too)
+        local size_btn = b1[3]
+        row1 = Draw.vstack({ Button.row({ b1[1], b1[2] }, ctrl_w),
+            Button.new{ label = size_btn[1], on_tap = size_btn[2], disabled = size_btn.disabled, w = ctrl_w } }, T.GAP)
         row2 = Button.row(b2, ctrl_w)
     else
         row1 = Button.row(b1, ctrl_w)
         row2 = Button.row(b2, ctrl_w)
     end
-    local extras = Org.extras(list, host:appIds(), known, mode == "sleep" and SLEEP_EXCLUDE or nil)
-    local extra_line
-    if #extras == 0 then
-        extra_line = Draw.text(S.t(mode == "sleep" and "org_none_add" or "org_none_hidden"), T.FONT_MIN, false, ctrl_w)
-    else
-        local items = { Draw.text(S.t(mode == "sleep" and "org_add" or "org_hidden"), T.FONT_MIN, false) }
-        local used = items[1]:getSize().w + T.GAP
-        for _, id in ipairs(extras) do
-            local name = host:appName(id) or id
-            local bw = math.min(Button.width_for(name, T.FONT_MIN), ctrl_w)
-            if used + bw > ctrl_w then break end
-            used = used + bw + T.GAP
-            items[#items + 1] = Button.new{ label = name, w = bw, size = T.FONT_MIN, on_tap = function()
+    -- hidden apps (home) / apps not on the sleep page: one button with the count; the popup adds them back and stays open
+    local exclude = mode == "sleep" and SLEEP_EXCLUDE or nil
+    local function extras_of(l) return Org.extras(l, host:appIds(), known, exclude) end
+    local n_extra = #extras_of(list)
+    local extra_btn = Button.row({ { S.t("org_hidden_btn", n_extra), function()
+        win:pick{ title = S.t(mode == "sleep" and "org_add_title" or "org_hidden_title"), owner = "sistema",
+            keep_open = true, done_label = S.t("org_done"), empty = S.t(mode == "sleep" and "org_none_add" or "org_none_hidden"),
+            options = function()
+                local options = {}
+                for i, id in ipairs(extras_of(host:layout(mode))) do options[i] = { value = id, label = host:appName(id) or id } end
+                return options
+            end,
+            on_pick = function(id)
                 local mm = host:app(id) or {}
-                route.sel = id
-                save(Org.unhide(list, id, (mm.sizes or {})[1] or "2x2"))
+                route.sel, route.view = id, nil
+                host:saveLayout(mode, Org.unhide(host:layout(mode), id, (mm.sizes or {})[1] or "2x2"))
+                win:showToast(S.t("org_added", host:appName(id) or id))
             end }
-        end
-        extra_line = Draw.hstack(items, T.GAP)
-    end
+    end, disabled = n_extra == 0 } }, ctrl_w)
     local parts = { info, row1, row2 }
     if copy_btn then parts[#parts + 1] = Button.row({ copy_btn }, ctrl_w) end
-    parts[#parts + 1] = extra_line
+    parts[#parts + 1] = extra_btn
     local controls = Draw.vstack(parts, T.GAP)
     local pager_h = #pages > 1 and (T.PAGER_H + T.GAP) or 0
     local function pager(w) return Pager.new(w, pi - 1, #pages, function() turn(-1) end, function() turn(1) end) end

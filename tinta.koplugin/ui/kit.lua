@@ -155,6 +155,13 @@ function Kit.rows(box, rows, opts)
     return Draw.vstack(parts, T.GAP)
 end
 
+-- Choice popup (6.10) over the current screen: title, options (values or { value, label?, sub? }), the current value
+-- (marked), on_pick(value). The popup closes on a pick or on a tap outside; the caller saves and redraws.
+function Kit.choose(title, options, current, on_pick)
+    local win = window()
+    if win then win:pick{ title = title, options = options, current = current, on_pick = on_pick, owner = win:currentApp() } end
+end
+
 -- box of the current screen body (same one the screen function receives)
 function Kit.content_box()
     local win = window()

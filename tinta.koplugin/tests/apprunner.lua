@@ -52,6 +52,7 @@ function M.run(id, here, suites)
         c.back = function() c.backs = (c.backs or 0) + 1 end
         c.open = function(screen, args) c.opened = { screen, args } end
         c.confirm = function(title, text, ok_label, fn) c.confirmed = { title = title, text = text, ok = fn } end
+        c.choose = function(title, options, current, on_pick) c.chosen = { title = title, options = options, current = current, pick = on_pick } end
         c.input = function(title, value, hint, on_save, o) c.inputs = c.inputs or {}; c.inputs[#c.inputs + 1] =
             { title = title, value = value, hint = hint, on_save = on_save, opts = o } end
         return c

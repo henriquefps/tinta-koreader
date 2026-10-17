@@ -28,8 +28,9 @@ local host = {
     sleepNow = function() calls[#calls + 1] = "sleep" end,
 }
 M._A.host = function() return host end
-local confirmed
-local ctx = { ui = Kit, i18n = tr, confirm = function(title, text, ok, fn) confirmed = { title = title, ok = ok, fn = fn } end }
+local confirmed, chosen
+local ctx = { ui = Kit, i18n = tr, confirm = function(title, text, ok, fn) confirmed = { title = title, ok = ok, fn = fn } end,
+    choose = function(title, options, current, fn) chosen = { title = title, options = options, current = current, fn = fn } end }
 
 local function cell_box(cols, rows, cw, ch) return math.floor(cols * cw + (cols - 1) * 8), math.floor(rows * ch + (rows - 1) * 8) end
 eq("manifest: sizes", table.concat(M.sizes, ","), "2x2,4x2,1x1")
@@ -156,9 +157,20 @@ for _, b in ipairs({ { w = 584, h = 608, landscape = false }, { w = 784, h = 408
         for _, bx in ipairs(hot) do if bx.on_tap then taps[#taps + 1] = bx end end
         eq(name .. ": three rows to tap", #taps, 3)
         table.sort(taps, function(a, c) return (a.dimen.y or 0) < (c.dimen.y or 0) end)
-        calls = {}
-        taps[1].on_tap(); eq(name .. ": row 1 cycles the mode", tinta.idle_mode, "never")
-        taps[2].on_tap(); eq(name .. ": row 2 cycles the minutes", tinta.idle_sleep, 10)
+        calls, chosen = {}, nil
+        taps[1].on_tap()
+        check(name .. ": row 1 opens the mode popup", chosen and chosen.title == "Dormir sozinho" and #chosen.options == 3
+            and chosen.current == "battery" and chosen.options[3].value == "never" and chosen.options[3].label == "nunca"
+            and chosen.options[1].sub == "com ou sem o cabo ligado")
+        eq(name .. ": opening the popup changes nothing", tinta.idle_mode, "battery")
+        chosen.fn("never"); eq(name .. ": picking a mode saves it", tinta.idle_mode, "never")
+        tinta.idle_mode = "battery"
+        chosen = nil
+        taps[2].on_tap()
+        check(name .. ": row 2 opens the minutes popup", chosen and chosen.title == "Depois de" and #chosen.options == 4
+            and chosen.current == 5 and chosen.options[2].label == "5 min")
+        chosen.fn(15); eq(name .. ": picking minutes saves them", tinta.idle_sleep, 15)
+        tinta.idle_sleep = 5
         taps[3].on_tap(); eq(name .. ": row 3 sleeps", calls[#calls], "sleep")
     end
     -- mode "nunca": the minutes row is gone
