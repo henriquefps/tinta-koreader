@@ -126,8 +126,36 @@ for _, b in ipairs({ { w = 584, h = 608, landscape = false }, { w = 784, h = 408
         check(name .. ": stat blocks", has("48 mA") and has("907") and has("23 °C") and has("3.120") and has("amostras"))
         check(name .. ": chart note", has("Gráfico:") and has("99% a 79%"))
         check(name .. ": basis", has("contador de carga"))
+        check(name .. ": a cache with only the old eta shows it as the awake estimate", has("acordado com Wi-Fi ~15h"))
     end
 end
+
+-- both estimates (real pace + awake), labelled, pt and en, portrait and landscape
+local saved_last = A.last
+A.last = { pct = 79, charging = false, eta = 5 * 86400, eta_mix = 5 * 86400, mix_basis = "mah", ma_mix = 7,
+    eta_awake = 14 * 3600, kind = "live", basis = "mah", ma_mean = 55, full_mah = 907, temp = 23, samples = 3120, at = now }
+for _, b in ipairs({ { w = 584, h = 608, landscape = false }, { w = 784, h = 408, landscape = true } }) do
+    local name = "screen both estimates " .. (b.landscape and "landscape" or "portrait")
+    oob, texts = {}, {}
+    area = { x = 0, y = 0, w = b.w, h = b.h }
+    local ok, res = pcall(M.screens.main, ctx, nil, b)
+    check(name .. ": builds", ok and type(res) == "table" and res.body ~= nil, res)
+    if ok and res then
+        local pok, perr = pcall(function() res.body:paintTo(bb, 0, 0) end)
+        check(name .. ": paints", pok, perr)
+        local sz = res.body:getSize()
+        check(name .. ": fits", sz.w <= b.w and sz.h <= b.h, sz.w .. "x" .. sz.h)
+        check(name .. ": inside", #oob == 0, oob[1])
+        if b.landscape then
+            check(name .. ": both labels on one line", has("no ritmo atual ~5 d · acordado com Wi-Fi ~14h"))
+        else
+            check(name .. ": real pace label", has("no ritmo atual ~5 d"))
+            check(name .. ": awake label", has("acordado com Wi-Fi ~14h"))
+        end
+        check(name .. ": headline in days", has("~5 d restantes · 7 mA em média"))
+    end
+end
+A.last = saved_last
 
 -- nothing logged yet and no reading: still draws
 A.store, A.last = Log.open(nil), nil

@@ -44,7 +44,7 @@ function T.lines(path)
     return out
 end
 
-local SUITES = { "logic", "csvlog", "device", "chart", "rules", "strings", "app", "view", "background", "syntax" }
+local SUITES = { "logic", "csvlog", "device", "chart", "rules", "strings", "app", "view", "background", "mix", "syntax" }
 local only = {}
 for i = 1, #(arg or {}) do only[arg[i]] = true end
 for _, name in ipairs(SUITES) do

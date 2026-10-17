@@ -919,8 +919,9 @@ fake_powerd.state = "active"
 
 do
     local l = BG.lines()
-    check("background log: sleep entry and button wake each wrote one marked sample",
-        #l == 5 and l[4]:match(",1$") and l[5]:match(",3$"), table.concat(l, " | "))
+    -- the frozen clock puts the unmarked 76 % row and the sleep entry in the same second: the marked row replaces it
+    check("background log: sleep entry and button wake each wrote one marked sample, no duplicate row",
+        #l == 4 and l[3]:match(",1$") and l[4]:match(",3$"), table.concat(l, " | "))
     BG.A.data_dir, BG.A.read, BG.A.store = BG.saved.data_dir, BG.saved.read, BG.saved.store
     Host:saveLayout("home", BG.home)
     os.execute('rm -rf "' .. BG.dir .. '"')

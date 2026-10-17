@@ -100,7 +100,7 @@ The interface is designed for 600×800 and scaled by `s = min(W/600, H/800)` (le
 
 | App | What it does |
 |---|---|
-| Battery (`bateria`) | Battery log (CSV), chart and an estimate of the remaining time in mAh |
+| Battery (`bateria`) | Battery log (CSV), chart and two estimates of the time left: at your recent real pace, sleep included (e.g. `~5 d`), and awake with Wi-Fi (e.g. `~14 h`) |
 | Clock (`relogio`) | Clock for Home and for the sleep page (several styles) |
 | Sleep (`repouso`) | The page shown while the device sleeps |
 | Notifications (`notificacoes`) | Notification centre for all apps |
