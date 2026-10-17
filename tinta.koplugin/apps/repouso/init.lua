@@ -41,6 +41,21 @@ local function actions(ctx)
             Host:set("idle_mode", Logic.cycle(Host:choices("idle_mode") or Logic.MODES, Logic.mode(Host:get("idle_mode"))))
             Host:redraw()
         end),
+        -- the screen's rows open a popup with every value (the widget buttons above keep the quick cycle)
+        pick_idle = with_host(function(Host)
+            local L = ctx.i18n.t
+            local options = {}
+            for i, v in ipairs(Host:choices("idle_sleep") or Logic.IDLE) do options[i] = { value = v, label = L("n_min", v) } end
+            ctx.choose(L("idle_after"), options, Host:get("idle_sleep"), function(v) Host:set("idle_sleep", v); Host:redraw() end)
+        end),
+        pick_mode = with_host(function(Host)
+            local L = ctx.i18n.t
+            local options = {}
+            for i, m in ipairs(Host:choices("idle_mode") or Logic.MODES) do
+                options[i] = { value = m, label = L("mode_" .. m), sub = L("mode_sub_" .. m) }
+            end
+            ctx.choose(L("idle"), options, Logic.mode(Host:get("idle_mode")), function(v) Host:set("idle_mode", v); Host:redraw() end)
+        end),
         sleep = with_host(function(Host) Host:sleepNow() end),
         confirm_sleep = function()
             local L = ctx.i18n.t

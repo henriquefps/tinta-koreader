@@ -10,7 +10,7 @@
 010 open detail 25de6f94
 011 back swipe from left edge fb8e3be8
 012 menu opens 5e023c5c
-013 interval cycles 5e023c5c
+013 interval picked from the popup 5e023c5c
 014 tap outside menu closes fb8e3be8
 015 refresh button a2c7e14d
 016 home swipe from bottom c33e1f04
@@ -26,14 +26,14 @@
 026 failing app screen (R-E2) 5b22b120
 027 error screen back ac3f1dca
 028 header shows app error 5b22b120
-029 hold a widget 9191a570
-030 organizer: before da0f63e8
-031 organizer: size 762559e8
-032 organizer: hide 5fcfb338
-033 organizer: unhide from Ocultas 762559e8
-034 organizer: sleep tab 5da8835e
-035 organizer: add to sleep 2e7a092a
-036 organizer: hide sistema warns 957a5210
+029 hold a widget fa6a3c20
+030 organizer: before 1e64abda
+031 organizer: size 9c5d8aca
+032 organizer: hide b9fe2ad0
+033 organizer: hidden popup adds the app 22b6718c
+034 organizer: sleep tab 21001abb
+035 organizer: add to sleep d256632c
+036 organizer: hide sistema warns f55f56c7
 037 organizer done bc936103
 038 sistema main aea21840
 039 sistema notifs 503a2e40
@@ -47,18 +47,18 @@
 047 sistema restore 384c4c38
 048 sistema app settings 6d7cf420
 049 bool setting toggles 6d7cf420
-050 choice cycles 6d7cf420
+050 choice picked from the popup 8cf0d738
 051 app screen: Estado row 6d7cf420
 052 app screen: turn off b69e92dd
 053 sistema apps list shows the off app dashed eda2a6b0
 054 launcher with an off app 4387d875
 055 launcher: tap turns it on 2eec8bc4
 056 sistema is not switchable 3deb6f78
-057 remove asks for confirmation 2db3d0f3
-058 remove cancelled cd5c2b20
+057 remove asks for confirmation 06050bb0
+058 remove cancelled 08969b4c
 059 needs-newer app: Sistema list 160c34b4
 060 needs-newer app: its screen 087e9cfc
-061 notif prefs cycle 5bd7d5ad
+061 notif prefs popup 5bd7d5ad
 062 navigation gestures only b3b0ca80
 063 home with handle 88f3e3b1
 064 navigation back to bar bb6f2390
@@ -104,7 +104,7 @@
 104 landscape sistema log 6f53fc14
 105 landscape sistema restore 4c6b51cc
 106 landscape central 092ac4e8
-107 landscape organizer 82952db8
+107 landscape organizer 39967ae9
 108 landscape test app ab90d5a8
 109 landscape home 18b74a34
 110 landscape menu 4c37912c
@@ -132,29 +132,29 @@
 132 home button back to first page 46a23c30
 133 rotate back to portrait 569acf70
 134 portrait pages 569acf70
-135 organizer pages: open 04d14a84
-136 organizer pages: next page dc72509c
-137 organizer pages: pick a widget of page 2 ebf13634
-138 organizer pages: move past a page end dca7fcc4
-139 organizer pages: landscape 66f83b58
-140 organizer pages: landscape sleep tab f2d054bd
-141 organizer pages: portrait again 7becf500
-142 organizer: sleep tab (copy) 7becf500
-143 organizer: copy from Home asks 1d0ac640
-144 organizer: copy cancelled changes nothing 7becf500
-145 organizer: copy confirmed 51efa304
+135 organizer pages: open ee266968
+136 organizer pages: next page b2a9ea08
+137 organizer pages: pick a widget of page 2 7c611c39
+138 organizer pages: move past a page end a8ba5c44
+139 organizer pages: landscape 01b8f610
+140 organizer pages: landscape sleep tab 4c3204a4
+141 organizer pages: portrait again 6a540edc
+142 organizer: sleep tab (copy) 6a540edc
+143 organizer: copy from Home asks 4bf60b40
+144 organizer: copy cancelled changes nothing 6a540edc
+145 organizer: copy confirmed 0a3dc678
 146 organizer: back home 2d3ac338
 147 tick 8131dc80
 148 repouso opens ae38f284
-149 repouso: wake cycles to nunca 7c7987cc
-150 repouso: wake cycles to 15 min 0d051808
+149 repouso: wake picked nunca 7c7987cc
+150 repouso: wake picked 15 min 0d051808
 151 repouso: wake -> 1800 0d051808
 152 repouso: wake -> 3600 24c99c1d
 153 repouso: wake -> 7200 24c99c1d
 154 repouso: wake -> schedule ae38f284
-155 repouso: mode cycles to nunca 69a9347c
-156 repouso: mode cycles to sempre 1190d20c
-157 repouso: minutes cycle 9744923c
+155 repouso: mode picked nunca 69a9347c
+156 repouso: mode picked sempre 1190d20c
+157 repouso: minutes picked 10 9744923c
 158 repouso: back to 5 min, battery ae38f284
 159 Sistema row shows the summary ff0708d1
 160 Dormir agora b43d2244
@@ -166,4 +166,38 @@
 166 sleep page 6e68fcc8
 167 wake request: Dormir agora 6e68fcc8
 168 wake request: settle, suspend, button wake 062262a0
-169 close 811c9dc5
+169 popup portrait: Atualizar a tela opens 53199fe8
+170 popup portrait: tap outside cancels eac085b0
+171 popup portrait: Voltar cancels eac085b0
+172 popup portrait: back gesture cancels eac085b0
+173 popup portrait: pick nunca (paged when it does not fit) 3baf7bcc
+174 popup portrait: Dormir sozinho 3463d9e4
+175 popup portrait: Depois de 191592fc
+176 popup portrait: language opens 1af2582c
+177 popup portrait: language picked 691b8d88
+178 popup portrait: language back 77f61b1c
+179 popup portrait: organizer with two hidden apps a1e639e4
+180 popup portrait: Ocultos opens the list cbf29d64
+181 popup portrait: first app added 12c3538b
+182 popup portrait: second app added 04bffee4
+183 popup portrait: add the rest, list gets empty 8c9d5a6c
+184 popup portrait: Pronto closes it e2021f44
+185 popup: rotate to landscape 42399216
+186 popup landscape: Atualizar a tela opens 55f066fe
+187 popup landscape: tap outside cancels 9505c1bc
+188 popup landscape: Voltar cancels 9505c1bc
+189 popup landscape: back gesture cancels 9505c1bc
+190 popup landscape: pick nunca (paged when it does not fit) 87fb11c7
+191 popup landscape: Dormir sozinho 31ddf298
+192 popup landscape: Depois de a1ac8488
+193 popup landscape: language opens 43741054
+194 popup landscape: language picked bda36807
+195 popup landscape: language back 0d2c03d5
+196 popup landscape: organizer with two hidden apps c4d70920
+197 popup landscape: Ocultos opens the list db134a2c
+198 popup landscape: first app added e58d96f8
+199 popup landscape: second app added 854d3b14
+200 popup landscape: add the rest, list gets empty 8d6fe880
+201 popup landscape: Pronto closes it 54b57568
+202 popup: rotate back to portrait 1da825c8
+203 close 811c9dc5

@@ -85,7 +85,8 @@ survives until those apps arrive. `Layout.normalize` would drop them.
 | `S:tinta(key)`, `S:set_tinta(key, v)`, `S:cycle_tinta(key)` | `lang`, `landscape`, `nav`, `full_every`, `wifi`, `quiet` (table), `banner`, `sleep_shows`, `wake` (seconds, `"schedule"` or `"never"`), `idle_mode` (`"always"`/`"battery"` (default)/`"never"`), `idle_sleep` (2/5/10/15 min); `ui/core.idle_due(c, last_touch, now, plugged)` passes both to `Power.idle_due`, `plugged` being a boolean or a function only called when needed (`Host:plugged()`, via `device/battery.plugged`) |
 | `Settings.CHOICES.notify_pref` | cycling alta → normal → desligada |
 | `S:get(id, key)`, `S:set_field(id, key, v)`, `S:display(id, key, T)` | Sistema → Apps → <app> (R-C1..R-C3; tokens are never shown, R-C2) |
-| `S:interval(id)`, `S:cycle_interval(id)`, `S:window(id)` | menu "Intervalo desta app", Sistema → Atualizações (R-C4) |
+| `S:interval(id)`, `S:set_interval(id, v)`, `S:window(id)` | choice popup "Intervalo desta app" and Sistema → Atualizações (R-C4); options from `Scheduler.INTERVALS` (`C.intervals()`) |
+| `S:cycle_interval(id)` | not used by the screens any more (the popup sets the value); kept for the cycle in core |
 | `S:notify_pref(id)`, `S:set_notify_pref(id, v)` | Sistema → Notificações (R-T2) |
 | `S:sleep_visible(id)`, `S:set_sleep_visible(id, v)` (`ui/core.sleep_visible`, `set_sleep_visible`) | the per-app "Mostrar na página de repouso" (R-V1); the sleep page draws a neutral placeholder for a hidden app |
 | `S:tinta("sleep_titles")`, `S:tinta("text_size")`, `Settings.text_factor(v)` (`ui/core.text_factor`) | Sistema → Repouso "Títulos na tela de repouso" (R-V3); Sistema → Tela "Tamanho do texto" → `T.set_text_factor` (R-X1) |

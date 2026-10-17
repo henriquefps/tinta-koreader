@@ -196,6 +196,7 @@ return {
 | `ctx.notify(n)` | emitir notificação (8.1) |
 | `ctx.open(screen, args)` | abrir uma tela da própria app |
 | `ctx.confirm(title, text, ok_label, fn)` | confirmação padrão (6.9) |
+| `ctx.choose(title, options, current, on_pick)` | popup de escolha (6.10); também `ctx.ui.choose` |
 | `ctx.toast(text)` | aviso curto |
 | `ctx.input(title, value, hint, on_save, opts)` | teclado do KOReader; `on_save(text)` → `true` \| `false, mensagem` (11.7) |
 | `ctx.wake_at(ts)` | pede a Tinta acordado em `ts`, inclusive do repouso; `nil` cancela (11.7) |
@@ -366,8 +367,8 @@ Nome da app (26 px negrito) à esquerda; à direita, o mesmo texto do rodapé de
 Abre por ☰ Menu, por cima do conteúdo e acima da barra de navegação. Itens de 60 px:
 
 - **Apps** é sempre o primeiro item, em qualquer tela: abre o lançador (7.4).
-- Na tela de uma app: "Atualizar <app> agora", "Intervalo desta app: <valor>" (cicla os valores de R-U1), e
-  depois os itens comuns.
+- Na tela de uma app: "Atualizar <app> agora", "Intervalo desta app: <valor>" (abre o popup de escolha, 6.10, com os
+  valores de R-U1), e depois os itens comuns.
 - No Início: "Organizar o início", e depois os comuns.
 - Comuns: "Atualizar todas as apps", "Central de notificações", "Abrir Sistema", "Dormir agora". A folha cabe 7
   itens em paisagem com a barra de navegação; na tela de uma app com atualização o "Apps" faria o "Dormir agora"
@@ -403,6 +404,25 @@ engole os toques por ~0,8 s, enquanto o e-ink ainda mostra a Tinta e a tela de b
 - **R-K2.** Avisos curtos ("Atualizado", "Sem Wi-Fi: mostrando o último dado", "Servidor sem resposta: mantive o
   último dado") em caixa preta acima da barra de navegação, por 2,6 s.
 
+### 6.10 Popup de escolha
+
+- **R-K4.** Toda linha de configuração com várias opções (intervalos, idioma, modo de "Dormir sozinho", "Depois de",
+  "Atualizar a tela", tamanho do texto, navegação, preferência de aviso, campos `choice` das apps, estilo do relógio…)
+  abre um popup em vez de ciclar a cada toque. Só os **botões de widget** (o 4×2 do Repouso) e os liga/desliga (`bool`,
+  orientação, Estado) continuam num toque.
+- Desenho: caixa centrada entre a barra de status e a barra de navegação (a largura do diálogo, 6.9), borda de 3 px,
+  título do campo e **uma linha de 64 px por opção** (`ui/row`); a opção atual vai **invertida e com "●"**. O fundo
+  (`backdrop`) pega todo toque fora da caixa, inclusive os da barra de navegação. Preto e branco, sem animação, medidas
+  em `T.px`, como as outras camadas (`ui/picker.lua`, camada própria do `Window`, não um widget do KOReader).
+- Comportamento: tocar numa opção grava (callback `on_pick(valor)`, protegido, R-E1) e fecha; tocar fora, "Voltar" da
+  barra, o gesto de voltar e a tecla Voltar cancelam sem gravar. O popup abre na página da opção atual. Quando as
+  opções não cabem (paisagem, textos grandes, listas longas) ele vira **páginas** com o pager (‹ N/M ›), nunca rola.
+- Variante que **fica aberta** (`keep_open`, com um botão de fechar "Pronto"): cada toque grava e a lista é
+  reconstruída (a lista de opções pode ser uma função). Usada em "Ocultos (N)" do organizador (R-O4).
+- Lógica pura em `ui/picklogic.lua` (normalizar opções, marca da atual, linhas por página, página inicial, fatias),
+  testada em `tests/tinta_ui_test.lua`. API: `Window:pick{ title, options, current, on_pick, owner?, keep_open?,
+  done_label?, empty? }`, `Host:pickSetting(...)` (configurações da Tinta), `ctx.choose` e `ctx.ui.choose` (apps).
+
 ## 7. Início, widgets e organizador
 
 ### 7.1 Encaixe
@@ -432,9 +452,12 @@ O assistente de primeiro uso (7.5) deixa o usuário escolher.
   só a página 1 vai para o repouso.
 - **R-O3.** Botões: "↑ Antes" e "↓ Depois" (trocam a ordem entre os visíveis, na lista inteira: o widget
   atravessa as quebras de página e o mapa o acompanha), "Tamanho ▸" (cicla os tamanhos
-  da app), "Ocultar" (Início) ou "Tirar" (Repouso), "Pronto" (volta).
-- **R-O4.** Linha "Ocultas:" (Início) ou "Adicionar:" (Repouso) com as apps fora do layout; tocar traz de
-  volta, no tamanho padrão.
+  da app; é um botão de ação sobre o widget, não uma configuração), "Ocultar" (Início) ou "Tirar" (Repouso), "Pronto" (volta).
+  Em paisagem "↑ Antes" e "↓ Depois" dividem uma linha da coluna lateral para caber o botão de R-O4.
+- **R-O4.** Um botão **"Ocultos (N)"** (em inglês "Hidden (N)"; desligado com N = 0), nas duas abas, abre o popup de
+  escolha (6.10) com as apps ocultas e as que não estão naquela página (no Repouso, sem o Sistema). Tocar numa traz de
+  volta, no primeiro tamanho declarado e no fim da lista, mostra o aviso "<app> adicionada" e **mantém o popup aberto**
+  (a lista se atualiza) para trazer várias; "Pronto" fecha.
 - **R-O5.** Ocultar Sistema é permitido; ele continua acessível pelo Menu e pela central (aviso "Sistema
   continua no Menu").
 - **R-O6.** O layout é salvo no banco a cada mudança.
@@ -654,8 +677,8 @@ Telas (em paisagem, as listas viram duas colunas):
 |---|---|
 | Sistema | Wi-Fi (ligar/desligar), Organizar, Notificações, Atualizações, Repouso, Conexões, Tela e navegação, Apps (configurações de cada app, 5.5; ativar, desativar e remover, R-M1..R-M4), Dados, Sair para o KOReader |
 | Notificações | preferência por app (alta/normal/desligada) com os tipos de evento; aviso no topo (ligado/desligado); na tela de repouso (só alta/todas/nenhuma) |
-| Atualizações | por app: intervalo (toque cicla), próxima atualização, horário; silêncio noturno |
-| Repouso | **Quando dormir:** "Dormir sozinho" (modo: sempre / só na bateria / nunca; padrão "só na bateria"; toque cicla; sub "com ou sem o cabo ligado", "não dorme com o cabo ligado" ou "não dorme sozinho"), "Depois de" (N min sem tocar na tela: 2 / 5 / 10 / 15; toque cicla; **some** com o modo "nunca") e "Dormir agora" (o botão de energia acorda). **Enquanto dorme:** "Atualizar a tela" (liga o Wi-Fi, atualiza e volta a dormir: a cada 15 min / 30 min / 1 h / 2 h / pelo horário / nunca; toque cicla) e "O que aparece na tela" (N widgets, abre o organizador na aba Repouso). Só com "pelo horário", abaixo de "Atualizar a tela", entra um texto recuado e não tocável com as faixas fixas (11.4). |
+| Atualizações | por app: intervalo (toque abre o popup de escolha, 6.10), próxima atualização, horário; silêncio noturno |
+| Repouso | **Quando dormir:** "Dormir sozinho" (modo: sempre / só na bateria / nunca; padrão "só na bateria"; toque abre o popup, 6.10; sub "com ou sem o cabo ligado", "não dorme com o cabo ligado" ou "não dorme sozinho"), "Depois de" (N min sem tocar na tela: 2 / 5 / 10 / 15; toque abre o popup; **some** com o modo "nunca") e "Dormir agora" (o botão de energia acorda). **Enquanto dorme:** "Atualizar a tela" (liga o Wi-Fi, atualiza e volta a dormir: a cada 15 min / 30 min / 1 h / 2 h / pelo horário / nunca; toque abre o popup) e "O que aparece na tela" (N widgets, abre o organizador na aba Repouso). Só com "pelo horário", abaixo de "Atualizar a tela", entra um texto recuado e não tocável com as faixas fixas (11.4). |
 | Conexões | por servidor: nome, endereço, "ok há N · latência" ou "sem resposta desde HH:MM · último ok há N" (invertido); Wi-Fi com o IP do Kindle |
 | Tela e navegação | navegação (barra + gestos / só gestos), orientação, refresh completo a cada 10 |
 | Apps | **todas** as apps: carregadas (nome, nº de configurações), desativadas e as que precisam de uma Tinta mais novo (linha tracejada); "Apps removidas (N)" quando houver. Tocar abre a tela da app: **Estado** "Ativada / Desativada" (toque alterna; Notificações e Sistema: "app do sistema: não pode ser desativada"), intervalo e configurações (5.5) quando carregada, e **Remover app** (confirmação "Remover <app>?"; some nas apps de sistema); app que precisa de versão mais nova mostra o que pede ("pede a API N; esta Tinta tem a API M" / "pede a Tinta X ou mais novo; este é o Y") em vez do Estado. Regras em R-M1..R-M4. |

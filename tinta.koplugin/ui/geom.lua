@@ -107,6 +107,13 @@ function M.dialog(W, H, h)
     return rect((W - w) / 2, (H - h) / 2, w, h)
 end
 
+-- choice popup (6.10): centered between the status bar and the navigation bar (or the screen bottom)
+function M.popup(regions, w, h)
+    local bottom = regions.nav and regions.nav.y or regions.H
+    h = math.min(h, bottom - T.SB_H)
+    return rect((regions.W - w) / 2, T.SB_H + (bottom - T.SB_H - h) / 2, w, h)
+end
+
 -- top banner (R-T5): right below the status bar, MARGIN from the edges
 function M.banner(W, h)
     return rect(T.MARGIN, T.SB_H + T.MARGIN, W - 2 * T.MARGIN, h)

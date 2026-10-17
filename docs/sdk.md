@@ -3,7 +3,7 @@
 > **English summary.** A Tinta app is a folder `tinta.koplugin/apps/<id>/` with an `init.lua` that returns a
 > manifest table (id, name, sizes, settings, notifications, …) plus Lua functions: `refresh(ctx, done)`,
 > `widget(ctx, size, box)`, `screens.<name>(ctx, args, box)` and a few optional hooks. The Tinta hands every
-> function a `ctx` (cache, data, settings, notify, net, open, confirm, toast, input, redraw, back, wake_at, i18n,
+> function a `ctx` (cache, data, settings, notify, net, open, confirm, choose, toast, input, redraw, back, wake_at, i18n,
 > `ui` kit). Every call into an app is protected (`pcall`): an app that throws gets an error widget or screen, never
 > a crash. Draw only through `ctx.ui` and the scaled theme (`T.px(n)`, `T.FONT_*`): no raw pixel numbers, black and
 > white, no animations, text that fits its box. Keep logic in a pure `logic.lua` (no `require`), put texts in
@@ -152,6 +152,7 @@ O núcleo e a interface entregam um `ctx` a cada app, o mesmo em todas as funç�
 | `ctx.net.get_json(url, opts)` · `ctx.net.post_json(url, body, opts)` · `ctx.net.connected()` | HTTP síncrono com timeout (8 s), limite de bytes (256 KiB) e JSON. `opts = { token, timeout, max_bytes, headers }`. Devolve a `tabela` ou `nil, tipo, detalhe` (`unreachable`, `unauthorized`, `forbidden`, `not_found`, `http`, `too_large`, `bad_json`, `server_failed`). `server_failed` é um 502 cujo corpo JSON traz `error` (texto) e, opcionalmente, `detail`: o detalhe vem como uma linha, com no máximo 120 caracteres. O token é tirado de todo detalhe. Pode ser `nil` (testes, falha ao carregar): confira |
 | `ctx.open(tela, args)` | abre outra tela **da própria app** |
 | `ctx.confirm(título, texto, rótulo_ok, fn)` | diálogo de confirmação padrão; `fn` roda só no OK |
+| `ctx.choose(título, opções, atual, on_pick)` | popup de escolha (abaixo): uma linha por opção, a atual marcada; tocar numa opção chama `on_pick(valor)` e fecha |
 | `ctx.toast(texto)` | aviso curto |
 | `ctx.input(título, valor, dica, on_save, opts)` | teclado do KOReader. `on_save(texto)` devolve `true`, ou `false, mensagem` para manter aberto. `opts = { number, multiline, password }`. **Não abra um segundo `input` dentro de `on_save`** (a Tinta fecha o diálogo depois que `on_save` volta) |
 | `ctx.redraw()` | redesenha a tela atual (depois de mudar dados) |
@@ -217,10 +218,44 @@ conteúdo 3:4 é centralizada; sobra borda branca). No KT3 a escala é 1 e nada 
 | `ui.rows(box, rows, opts)` | lista paginada de linhas (duas colunas em paisagem; aceita `{ section = "…" }` e `{ note = {…} }`) |
 | `ui.paged(box, itens, build, opts)` | lista paginada de qualquer coisa (**nada rola**: páginas com pager) |
 | `ui.pager`, `ui.header` | rodapé de páginas e cabeçalho de tela |
+| `ui.choose(título, opções, atual, on_pick)` | o mesmo que `ctx.choose` (popup de escolha) |
 | `ui.icons.wifi / bell / gear / battery` | ícones desenhados |
 | `ui.draw`, `ui.fg(inv)`, `ui.bg(inv)` | primitivas e cores |
 | `ui.content_box()` | a caixa da área de conteúdo da tela |
 | `ui.theme` | o tema (`T`) |
+
+### Popup de escolha (`ctx.choose`)
+
+Toda linha de configuração com **várias opções** (um intervalo, um modo, um idioma) abre um popup em vez de ciclar a cada
+toque: com 4 ou 6 opções, ciclar é lento e é fácil passar do ponto. O popup é desenhado pela própria Tinta (como o
+diálogo de confirmação, não é um widget do KOReader) e funciona em retrato, paisagem e em todos os tamanhos de tela.
+
+```lua
+on_tap = function()
+    ctx.choose(L("mode"), {
+        { value = "a", label = L("mode_a"), sub = L("mode_a_sub") },   -- sub é opcional
+        { value = "b", label = L("mode_b") },
+    }, ctx.settings:get("mode"), function(v)
+        ctx.settings:set("mode", v)
+        ctx.redraw()
+    end)
+end
+```
+
+- `opções`: valores soltos (o rótulo é o próprio valor) ou tabelas `{ value, label?, sub? }`. Lista vazia: nada abre.
+- `atual`: o valor que fica **marcado** (linha invertida com "●"); o popup abre na página dessa opção.
+- **Tocar numa opção** chama `on_pick(valor)` (protegido, como todo callback) e fecha. **Tocar fora**, "Voltar" da barra
+  de navegação, o gesto de voltar e a tecla Voltar **cancelam** sem chamar nada. O popup só guarda a escolha quando você
+  salva em `on_pick`; depois dela a tela é redesenhada (chame `ctx.redraw()` só se `on_pick` mudar algo além do que o
+  popup já redesenha).
+- Quando as opções não cabem na tela, o popup vira **páginas** com o pager (‹ N/M ›); nada rola.
+- Use `ctx.choose` só para escolher entre opções. **Botões de widget** (como os botões do widget 4×2 do Repouso)
+  continuam ciclando num toque: não dá para abrir um popup dentro de um widget pequeno. Duas opções que são um
+  liga/desliga continuam sendo `bool` (um toque alterna).
+- Campos `choice` do manifesto (seção 4) e a linha "Intervalo" da tela da app em Sistema → Apps já usam o popup sozinhos:
+  você não escreve nada.
+- Nos testes, `T.ctx()` guarda a chamada em `ctx.chosen = { title, options, current, pick }`; chame `ctx.chosen.pick(valor)`
+  para simular a escolha.
 
 **Cuidados de desenho que já custaram caro:**
 
@@ -322,7 +357,7 @@ require("apprunner").run("meuapp", here, { "logic", "app", "strings", "view" })
 - **`tests/apprunner.lua`** carrega `tests/test_<nome>.lua` e passa `T`: `T.check(nome, cond)`, `T.eq(nome, obtido, esperado)`,
   `T.L(chave, …)` (textos pt, como `ctx.i18n.t`), `T.plugin`, `T.here` e `T.ctx{ now?, settings? }`, um `ctx` falso com
   `data`, `settings`, `notify` (guarda em `ctx.notes`), `wake_at` (`ctx.wakes`), `redraw`, `toast` (`ctx.toasts`), `confirm`
-  (`ctx.confirmed`), `input` (`ctx.inputs`), `open`, `back` e `log`. Faltam `cache` e `ui`: ponha o que a app usa (veja
+  (`ctx.confirmed`), `choose` (`ctx.chosen`), `input` (`ctx.inputs`), `open`, `back` e `log`. Faltam `cache` e `ui`: ponha o que a app usa (veja
   `apps/_modelo/tests/test_app.lua`).
 - **`tests/uistub.lua`**: `local H = require("uistub").install()` instala widgets de mentira (texto de largura fixa) para o `ui/kit`
   **de verdade** montar, pintar e medir widgets e telas sem KOReader. `H.cell(size, "portrait"|"landscape", inv)` dá a `box` de um

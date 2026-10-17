@@ -3,7 +3,8 @@
 -- Repouso app: widgets (1x1 button, 2x2 state, 4x2 with three buttons) and the main screen with the three actions.
 -- Built only from ctx.ui (ui/kit) inside the box the core gives (R-W1); sizes are summed by hand (R-L1).
 -- Buttons are at least 64 px tall (6.1) and are the smallest tap boxes, so they win over the tile's own tap
--- (which opens the screen); acts = { cycle (minutes), cycle_mode, sleep, confirm_sleep } are callbacks of init.lua.
+-- (which opens the screen); acts = { cycle (minutes), cycle_mode, pick_idle, pick_mode, sleep, confirm_sleep } are callbacks of init.lua (the
+-- widget buttons cycle; the screen's rows open the choice popup).
 local Geom = require("ui/geom")
 local Logic = require("apps/repouso/logic")
 
@@ -44,10 +45,10 @@ end
 function M.screen(ctx, box, vm, acts)
     local L = vm.L
     local rows = {
-        { title = L("idle"), sub = Logic.mode_sub(L, vm.mode), right = Logic.mode_text(L, vm.mode), on_tap = acts.cycle_mode },
+        { title = L("idle"), sub = Logic.mode_sub(L, vm.mode), right = Logic.mode_text(L, vm.mode), on_tap = acts.pick_mode },
     }
     if Logic.sleeps_alone(vm.mode) then
-        rows[#rows + 1] = { title = L("idle_after"), sub = L("idle_after_sub"), right = Logic.idle_text(L, vm.idle, vm.mode), on_tap = acts.cycle }
+        rows[#rows + 1] = { title = L("idle_after"), sub = L("idle_after_sub"), right = Logic.idle_text(L, vm.idle, vm.mode), on_tap = acts.pick_idle }
     end
     rows[#rows + 1] = { title = L("sleep_now"), sub = L("sleep_now_sub"), right = "›", on_tap = acts.sleep }
     return { body = ctx.ui.rows(box, rows, { two_cols = false }) }

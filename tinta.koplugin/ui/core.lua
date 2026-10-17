@@ -293,6 +293,8 @@ function M.app_set_field(c, id, key, v) return c.settings:set_field(id, key, v) 
 function M.app_display(c, id, key, T) return c.settings:display(id, key, T) end
 function M.interval(c, id) return c.settings:interval(id) end
 function M.cycle_interval(c, id) return c.settings:cycle_interval(id) end
+function M.set_interval(c, id, v) return c.settings:set_interval(id, v) end
+function M.intervals() return Scheduler.INTERVALS end
 function M.window(c, id) return c.settings:window(id) end
 function M.notify_pref(c, id) return c.settings:notify_pref(id) end
 function M.set_notify_pref(c, id, v) return c.settings:set_notify_pref(id, v) end
