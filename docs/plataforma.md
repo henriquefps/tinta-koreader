@@ -43,8 +43,8 @@ Legenda: **feito**, **fora** (não será feito agora).
 | 5 | Dados por app no SQLite, com migração de esquema | **feito** (R-B1 a R-B4, `migrate` por app, R-D2) |
 | 6 | Gerente de energia central (só a Tinta liga/desliga Wi-Fi, suspende, programa o despertar) | **feito** (R-P1, `device/sleep.lua`, `device/net.lua`, `core/power.lua`) |
 | 7 | Abstração de aparelho: tamanhos pela densidade/ratio, descobrir o que o aparelho tem, degradar | **feito**: escala `s = min(L/600, A/800)` + letterbox; backends `kindle`/`kobo`/`generic` (Kobo experimental) |
-| 8 | Apps declarativas (HTTP → JSON, sem código no aparelho) | **fora** por enquanto (a app de exemplo `_exemplo_json` mostra o padrão em Lua) |
-| 9 | Ferramentas para quem cria apps: gerador, testes, docs, apps de referência | **feito**: `scripts/nova-app.sh`, `tests/apprunner.lua`, `tests/uistub.lua`, `apps/_modelo`, `apps/_exemplo_json`, [`sdk.md`](sdk.md) |
+| 8 | Apps declarativas (HTTP → JSON, sem código no aparelho) | **fora** por enquanto (as apps de exemplo `_exemplo_json` (seu servidor) e `_exemplo_clima` (serviço da web) mostram o padrão em Lua) |
+| 9 | Ferramentas para quem cria apps: gerador, testes, docs, apps de referência | **feito**: `scripts/nova-app.sh`, `tests/apprunner.lua`, `tests/uistub.lua`, `apps/_modelo`, `apps/_exemplo_json`, `apps/_exemplo_clima`, [`sdk.md`](sdk.md) |
 | 10 | Primeiro uso: assistente com Wi-Fi e escolha das apps | **feito** (arquitetura, 7.5) |
 | 11 | Diagnóstico: log por app e exportação | **feito**: Sistema → Dados exporta o diagnóstico (log, versões, aparelho; sem segredos) |
 | 12 | Backup da configuração num arquivo copiável | **feito**: Sistema → Dados |

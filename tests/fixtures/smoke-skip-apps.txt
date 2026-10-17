@@ -2,3 +2,4 @@
 # (launcher pages and KT3 hashes). Each loads only for SMOKE_APP=<id>. scripts/nova-app.sh adds the ids it creates.
 _modelo
 _exemplo_json
+_exemplo_clima

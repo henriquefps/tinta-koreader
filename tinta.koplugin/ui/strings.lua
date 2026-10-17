@@ -197,7 +197,7 @@ M.en = {
     app_missing = "App not found: %s",
 
     home_empty = "No widgets on Home. Menu → Organize home.",
-    sleep_footer = "Sleeping. Press the power button to use the tinta.",
+    sleep_footer = "Sleeping. Press the power button to use Tinta.",
     sleep_status = "Sleep · updated %s · next %s",
     sleep_widget_updated = "updated %s",
 

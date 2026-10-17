@@ -9,7 +9,8 @@
 > white, no animations, text that fits its box. Keep logic in a pure `logic.lua` (no `require`), put texts in
 > `strings.lua` (pt + en), and never read the store in loops (it lives on a slow filesystem on the Kindle). Test with
 > `tests/apprunner.lua` + `tests/uistub.lua`. **Start with `scripts/nova-app.sh <id> "<Name>"`**, which copies the
-> reference app `apps/_modelo`; `apps/_exemplo_json` is the second example (an app that fetches a JSON over the network). Apps run inside the KOReader process with full access: permissions in the manifest
+> reference app `apps/_modelo` (a local app); `apps/_exemplo_json` is the example for an app that talks to **your home server**
+> and `apps/_exemplo_clima` the one for an app that uses a **web service** (the public Open-Meteo API); both are tested with a fake `ctx.net`. Apps run inside the KOReader process with full access: permissions in the manifest
 > inform, they do not enforce. API version today: `api = 1`, Tinta `0.1`.
 
 Este guia vale para a **API de apps 1** (`core/version.lua`: `API_VERSION = 1`, `TINTA_VERSION = "0.1"`). A
@@ -360,9 +361,9 @@ require("apprunner").run("meuapp", here, { "logic", "app", "strings", "view" })
 - [ ] Notificações com `key` estável e `type` declarado; `route` abre uma tela que existe.
 - [ ] `scripts/test-all.sh` verde, e `SMOKE_APP=<id> luajit tests/tinta_ui_smoke.lua` verde.
 
-## 15. Segundo exemplo: uma app de rede (`apps/_exemplo_json`)
+## 15. Segundo exemplo: uma app que fala com o seu servidor (`apps/_exemplo_json`)
 
-A `_modelo` é local (um contador). A **`_exemplo_json`** mostra o padrão mais comum das apps de verdade: **buscar um JSON num
+A `_modelo` é local (um contador); a `_exemplo_clima` (seção 16) usa um serviço público da web. A **`_exemplo_json`** mostra o padrão mais comum das apps de verdade: **buscar um JSON num
 servidor configurável**, guardar só o que se usa, mostrar num widget e numa tela e **avisar quando o valor passa de um limite**.
 Como a `_modelo`, a pasta começa com `_` e só carrega com `dev_apps` ligado; para partir dela, copie a pasta e troque o id
 dentro dos arquivos (o `nova-app.sh` copia a `_modelo`).
@@ -390,3 +391,33 @@ O que copiar para as suas apps:
 - **Testar sem rede:** monte um `ctx` com `T.ctx{ settings = … }`, ponha `ctx.net = { get_json = function(url, opts) … end }` e
   um `ctx.cache` simples (veja `tests/test_app.lua`). Cubra cada `kind` de falha, o formato errado, `ctx.net == nil` e a regra do
   limite. Rode: `luajit tinta.koplugin/apps/_exemplo_json/tests/run.lua` e `SMOKE_APP=_exemplo_json luajit tests/tinta_ui_smoke.lua`.
+
+## 16. Terceiro exemplo: uma app que usa um serviço da web (`apps/_exemplo_clima`)
+
+Os três exemplos cobrem os três tipos de app: a **`_modelo`** é **local** (sem rede: timers, notas, contadores), a
+**`_exemplo_json`** fala com **o seu servidor** (um endereço que você configura, com token opcional) e a **`_exemplo_clima`**
+usa um **serviço público da web**, a API [Open-Meteo](https://open-meteo.com) (sem chave de API e sem conta): tempo agora e nas
+próximas horas, e um aviso de "chuva nas próximas horas". Como as outras, a pasta começa com `_` (só carrega com `dev_apps`, fora
+do zip de release).
+
+| Arquivo | O que mostra |
+|---|---|
+| `init.lua` | manifesto com `net = true`, `defaults = { interval = 1800 }` (a cada 30 min), `settings` `lat` / `lon` (`number` com `min`/`max`) e `units` (`choice`), o tipo de notificação `rain`; `refresh` com `ctx.net.get_json` |
+| `logic.lua` | `Logic.url` (monta o pedido com os valores validados), `Logic.parse` (guarda só a temperatura atual e as próximas 24 horas; recusa o formato errado sem lançar erro), `Logic.rain_ahead` (a regra do aviso), `Logic.day_key`, `Logic.view` |
+| `view.lua` | widgets 2×2 e 4×2 com `ui.basic`; tela com a temperatura grande e a lista das próximas horas (`ui.rows`) |
+| `tests/` | `ctx.net` falso que devolve o JSON gravado em `tests/sample.json` (e cada tipo de falha); regra da chuva e do aviso por dia; widgets e tela em todos os tamanhos |
+
+O que copiar para as suas apps:
+
+- **Um serviço público sem chave:** o endereço vem do código (`Logic.HOST`), os parâmetros vêm das `settings` já validadas
+  (`Logic.url` volta ao padrão se o valor for inválido). Se o serviço pedir chave, use um campo `type = "token"` e passe
+  `{ token = … }` a `ctx.net.get_json`: nunca no log, na notificação ou na tela.
+- **Pedir o que o serviço já resolve:** o pedido usa `timezone=auto` e `timeformat=unixtime`, então a resposta traz horários Unix e
+  o fuso do lugar (`utc_offset_seconds`), e a `logic.lua` não precisa interpretar datas.
+- **Cache e `done`:** guarde só o que se mostra (`ctx.cache:put`), chame `done(true)` e só depois `ctx.notify` (a primeira leitura
+  da sessão só arma os avisos, seção 7). O widget e a tela fazem **uma** leitura de cache por chamada.
+- **Aviso uma vez por dia:** `key = "rain:" .. Logic.day_key(now, offset)`. A Tinta descarta uma chave repetida (seção 10), então
+  atualizar a cada 30 min não repete o aviso naquele dia, e o dia seguinte tem outra chave.
+- **Testar sem rede:** como na `_exemplo_json`, `ctx.net = { get_json = function(url, opts) … end }` devolve o JSON gravado ou
+  `nil, tipo, detalhe`; confira a URL pedida, cada tipo de falha e a regra. Rode:
+  `luajit tinta.koplugin/apps/_exemplo_clima/tests/run.lua` e `SMOKE_APP=_exemplo_clima luajit tests/tinta_ui_smoke.lua`.

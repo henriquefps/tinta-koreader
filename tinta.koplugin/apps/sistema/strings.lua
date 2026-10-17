@@ -206,7 +206,7 @@ return {
         apps_sub = "settings of each app",
         data = "Data",
         exit = "Exit to KOReader",
-        exit_sub = "closes the tinta",
+        exit_sub = "closes Tinta",
         nav_bar = "bar + gestures",
         nav_gestures = "gestures only",
         portrait = "portrait",

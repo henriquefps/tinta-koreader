@@ -1,27 +1,27 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tinta · protótipo</title>
+<title>Tinta · prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
 <style>
-/* Layout: o Kindle simulado em tamanho real (600×800 px, escalado para caber) à esquerda; controles e notas à direita. */
+/* Layout: the simulated Kindle at real size (600×800 px, scaled to fit) on the left; controls and notes on the right. */
 :root {
-  --bg: #e6e9ed;          /* fundo da página */
-  --panel: #ffffff;       /* painel lateral */
+  --bg: #e6e9ed;          /* page background */
+  --panel: #ffffff;       /* side panel */
   --fg: #1c232b;
   --muted: #5a6572;
   --line: #cdd4dc;
-  --accent: #2e5c88;      /* controles da página (nunca na tela do Kindle) */
-  --bezel: #25272b;       /* moldura do aparelho */
-  --paper: #ecebe6;       /* e-ink: o branco do papel */
-  --ink: #141414;         /* e-ink: preto */
+  --accent: #2e5c88;      /* page controls (never on the Kindle screen) */
+  --bezel: #25272b;       /* device bezel */
+  --paper: #ecebe6;       /* e-ink: the white of the paper */
+  --ink: #141414;         /* e-ink: black */
   --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-  --font-kindle: "Noto Sans", "Helvetica Neue", Arial, sans-serif;  /* a cfont do KOReader é Noto Sans */
+  --font-kindle: "Noto Sans", "Helvetica Neue", Arial, sans-serif;  /* KOReader's cfont is Noto Sans */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -41,7 +41,7 @@ header.page { max-width: 1280px; margin: 0 auto 20px; }
 header.page h1 { font-size: 24px; margin: 0 0 4px; text-wrap: balance; }
 header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 
-/* ---------------------------------------------------------------- aparelho */
+/* ---------------------------------------------------------------- device */
 .device-col { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; position: sticky; top: 12px; }
 .device { background: var(--bezel); border-radius: 22px; padding: 26px 22px 46px; box-shadow: 0 10px 30px rgba(0,0,0,.18); max-width: 100%; }
 .holder { position: relative; overflow: hidden; }
@@ -52,7 +52,7 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 }
 .device-caption { font: 13px var(--font-mono); color: var(--muted); text-align: center; }
 
-/* Tudo dentro da tela em px reais do KT3 (167 ppi): texto >= 20, toque >= 64 de altura. Só preto e branco. */
+/* Everything inside the screen is in real KT3 px (167 ppi): text >= 20, touch targets >= 64 tall. Black and white only. */
 .sb { height: 48px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-bottom: 2px solid var(--ink); }
 .sb .clock { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
 .sb .spacer { flex: 1; }
@@ -67,13 +67,13 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 .nav button:focus-visible, .scr-btn:focus-visible, .w:focus-visible, .row:focus-visible { outline: 3px dashed var(--ink); outline-offset: -6px; }
 .handle { position: absolute; left: 50%; bottom: 8px; width: 120px; height: 6px; margin-left: -60px; background: var(--ink); border-radius: 3px; }
 
-/* cabeçalho de app (componente global) */
+/* app header (global component) */
 .ah { display: flex; align-items: baseline; gap: 12px; padding: 4px 4px 8px; border-bottom: 2px solid var(--ink); }
 .ah-t { font-size: 26px; font-weight: 700; white-space: nowrap; }
 .ah-m { margin-left: auto; font-size: 20px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ah-m.busy, .ah-m.err { font-weight: 700; }
 
-/* início: grade de widgets em células (6×8 em retrato, 8×6 em paisagem) */
+/* home: widget grid in cells (6×8 portrait, 8×6 landscape) */
 .wgrid { flex: 1; min-height: 0; display: grid; gap: 8px; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(8, 1fr); }
 .landscape .wgrid { grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(6, 1fr); }
 .w { all: unset; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 4px; padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; min-width: 0; min-height: 0; overflow: hidden; position: relative; }
@@ -92,8 +92,9 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 .w .wcol { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .w.one { align-items: center; justify-content: center; gap: 0; padding: 4px; }
 .w.one b { font-size: 26px; line-height: 1; }
+.w .tag { font-size: 20px; font-weight: 400; border: 2px solid currentColor; border-radius: 4px; padding: 0 6px; line-height: 1.2; flex: none; }
 
-/* blocos genéricos das apps */
+/* generic app blocks */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .stat { border: 2px solid var(--ink); border-radius: 4px; height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 4px; }
 .stat b { font-size: 44px; line-height: 1; }
@@ -136,7 +137,7 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 .punches .t { font-weight: 700; font-variant-numeric: tabular-nums; }
 .punches .p { font-size: 20px; }
 
-/* central de notificações */
+/* notification center */
 .qt { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .qt .scr-btn { flex-direction: column; gap: 0; font-size: 20px; padding: 0 4px; height: 72px; }
 .qt .scr-btn small { font-size: 20px; font-weight: 400; }
@@ -151,7 +152,7 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 .banner .nh { font-size: 20px; }
 .banner .nt { font-size: 22px; font-weight: 700; }
 
-/* organizar */
+/* organizer */
 .org { flex: 1; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px; }
 .ctrl { display: flex; flex-direction: column; gap: 8px; }
 .landscape .org { grid-template-columns: minmax(0, 1fr) 280px; grid-template-rows: auto minmax(0, 1fr); }
@@ -168,11 +169,11 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 .ctrl .hidden-row { font-size: 20px; padding: 0 4px; }
 .ctrl .hidden-row button { all: unset; text-decoration: underline; cursor: pointer; margin-right: 12px; }
 
-/* tela de repouso */
+/* sleep page */
 .sleep-note { font-size: 20px; text-align: center; border-top: 2px solid var(--ink); padding-top: 6px; flex: none; }
 .sleep-alert { background: var(--ink); color: var(--paper); border-radius: 6px; padding: 8px 12px; font-size: 22px; font-weight: 700; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* sobreposições: menu, confirmação, aviso */
+/* overlays: menu, confirmation, notice */
 .backdrop { position: absolute; inset: 0; }
 .sheet { position: absolute; left: 0; right: 0; background: var(--paper); border-top: 3px solid var(--ink); }
 .sheet .sh-t { font-size: 22px; font-weight: 700; padding: 10px 14px; border-bottom: 2px solid var(--ink); }
@@ -186,7 +187,7 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 .toast { position: absolute; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); font-size: 22px; font-weight: 700; padding: 12px 18px; border-radius: 4px; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
 .flash { position: absolute; inset: 0; background: var(--ink); pointer-events: none; }
 
-/* ---------------------------------------------------------------- painel */
+/* ---------------------------------------------------------------- panel */
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 22px; min-width: 0; }
 .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
 .panel section { min-width: 0; }
@@ -206,13 +207,13 @@ input[type="checkbox"] { accent-color: var(--accent); }
 .gbtn .src { font: 12px var(--font-mono); color: var(--muted); display: block; }
 .log { font: 13px/1.6 var(--font-mono); margin: 0; padding: 0; list-style: none; color: var(--fg); }
 .log li { border-bottom: 1px dashed var(--line); padding: 3px 0; overflow-wrap: anywhere; }
-.log:empty::before { content: "Nada ainda."; color: var(--muted); }
+.log:empty::before { content: "Nothing yet."; color: var(--muted); }
 .panel ul.plain { margin: 0; padding-left: 18px; }
 .panel ul.plain li { margin-bottom: 6px; }
 .panel p { margin: 0 0 8px; }
 .muted { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .flash { display: none; } }
-/* modo captura (?shot=1): só a tela, em px reais, sem moldura nem painel */
+/* capture mode (?shot=1): only the screen, in real px, no bezel or panel */
 body.shot { padding: 0; background: var(--paper); }
 body.shot header.page, body.shot .panel, body.shot .device-caption { display: none; }
 body.shot .wrap { display: block; max-width: none; margin: 0; }
@@ -235,39 +236,39 @@ body.shot .device { padding: 0; border-radius: 0; background: none; box-shadow: 
 </head>
 <body>
 <header class="page">
-  <h1>Tinta: protótipo do dashboard</h1>
-  <p>Plugin do KOReader que transforma o Kindle num painel de apps. A tela está em tamanho real do Kindle KT3 (600 × 800 px, preto e branco), com as apps que o sistema público traz: Notificações, Sistema, Bateria, Relógio, Repouso, Timer, Nota e Contagem. Os dados são de exemplo.</p>
+  <h1>Tinta: dashboard prototype</h1>
+  <p>A KOReader plugin that turns the Kindle into an app dashboard. The screen is shown at the real size of the Kindle KT3 (600 × 800 px, black and white), with the apps the public Tinta ships: Notifications, System, Battery, Clock, Sleep, Timer, Note and Countdown, plus three sample apps for developers (marked "sample"). All data is made up.</p>
 </header>
 
 <div class="wrap">
   <div class="device-col">
     <div class="device"><div class="holder" id="holder"><div class="screen" id="screen"></div></div></div>
-    <div class="device-caption" id="caption">Kindle KT3 · 600 × 800 · retrato</div>
+    <div class="device-caption" id="caption">Kindle KT3 · 600 × 800 · portrait</div>
   </div>
 
   <aside class="panel">
     <section>
-      <h2>Telas</h2>
+      <h2>Screens</h2>
       <div class="seg" id="seg-view">
-        <button type="button" data-v="home">Início</button><button type="button" data-v="central">Central</button><button type="button" data-v="apps">Apps</button><button type="button" data-v="sleep">Repouso (página)</button><button type="button" data-v="sistema">Sistema</button><button type="button" data-v="sleepcfg">Sistema › Repouso</button><button type="button" data-v="organizar">Organizar</button><button type="button" data-v="relogio">Relógio</button><button type="button" data-v="timer">Timer</button><button type="button" data-v="nota">Nota</button><button type="button" data-v="contagem">Contagem</button><button type="button" data-v="bateria">Bateria</button>
+        <button type="button" data-v="home">Home</button><button type="button" data-v="central">Center</button><button type="button" data-v="apps">Apps</button><button type="button" data-v="sleep">Sleep (page)</button><button type="button" data-v="sistema">System</button><button type="button" data-v="sleepcfg">System › Sleep</button><button type="button" data-v="organizar">Organize</button><button type="button" data-v="relogio">Clock</button><button type="button" data-v="timer">Timer</button><button type="button" data-v="nota">Note</button><button type="button" data-v="contagem">Countdown</button><button type="button" data-v="bateria">Battery</button><button type="button" data-v="yourapps">Your apps (samples)</button><button type="button" data-v="clima">Weather</button><button type="button" data-v="servidor">Home server</button><button type="button" data-v="modelo">Counter</button>
       </div>
     </section>
     <section>
-      <h2>Simular o aparelho</h2>
-      <div class="ctl"><span class="lbl">Orientação</span>
-        <div class="seg" id="seg-orient"><button type="button" data-v="portrait">Retrato</button><button type="button" data-v="landscape">Paisagem</button></div>
+      <h2>Simulate the device</h2>
+      <div class="ctl"><span class="lbl">Orientation</span>
+        <div class="seg" id="seg-orient"><button type="button" data-v="portrait">Portrait</button><button type="button" data-v="landscape">Landscape</button></div>
       </div>
-      <div class="ctl"><span class="lbl">Estilo do relógio</span>
-        <div class="seg" id="seg-style"><button type="button" data-v="digital">Digital</button><button type="button" data-v="data">Com data</button><button type="button" data-v="analogico">Analógico</button><button type="button" data-v="minimo">Mínimo</button></div>
+      <div class="ctl"><span class="lbl">Clock style</span>
+        <div class="seg" id="seg-style"><button type="button" data-v="digital">Digital</button><button type="button" data-v="data">With date</button><button type="button" data-v="analogico">Analog</button><button type="button" data-v="minimo">Minimal</button></div>
       </div>
     </section>
     <section>
-      <h2>Como usar</h2>
+      <h2>How to use</h2>
       <ul class="plain">
-        <li>Toque nos widgets, no sino, no relógio ou na barra de baixo, como no aparelho.</li>
-        <li><b>Menu › Apps</b> abre o lançador; <b>Menu › Organizar o início</b> abre o organizador.</li>
-        <li>Parâmetros de URL: <code>?view=home|central|apps|sleep|sistema|sleepcfg|organizar|relogio|timer|nota|contagem|bateria</code>, <code>&amp;land=1</code>, <code>&amp;style=analogico</code> e <code>&amp;shot=1</code> (só a tela, em px reais, para as capturas).</li>
-        <li>O horário é fixo (sexta, 16 de outubro, 14:32) para as capturas serem reproduzíveis.</li>
+        <li>Tap the widgets, the bell, the clock or the bottom bar, as on the device.</li>
+        <li><b>Menu › Apps</b> opens the launcher; <b>Menu › Organize home</b> opens the organizer.</li>
+        <li>URL parameters: <code>?view=home|yourapps|central|apps|sleep|sistema|sleepcfg|organizar|relogio|timer|nota|contagem|bateria|clima|servidor|modelo</code>, <code>&amp;land=1</code>, <code>&amp;style=analogico</code>, <code>&amp;samples=1</code> (list the sample apps in Apps) and <code>&amp;shot=1</code> (only the screen, in real px, for the screenshots).</li>
+        <li>The time is fixed (Friday, October 16, 14:32) so the screenshots are reproducible.</li>
       </ul>
     </section>
   </aside>
@@ -275,7 +276,7 @@ body.shot .device { padding: 0; border-radius: 0; background: none; box-shadow: 
 
 <script>
 "use strict";
-// relógio fixo: as capturas saem sempre iguais
+// fixed clock: the screenshots always come out the same
 const NOW = new Date(2026, 9, 16, 14, 32);
 const P = new URLSearchParams(location.search);
 const SHOT = P.get("shot") === "1";
@@ -283,6 +284,7 @@ const S = {
   stack: [{ r: P.get("view") === "sleep" ? "home" : (P.get("view") || "home") }],
   wifi: "on", pct: 64, landscape: P.get("land") === "1", style: P.get("style") || "data",
   sleep: P.get("view") === "sleep", menu: P.get("menu") === "1",
+  samples: P.get("samples") === "1" || ["yourapps", "clima", "servidor", "modelo"].includes(P.get("view")),
   orgMode: "home", sel: "nota", sleepEvery: 1800, idleMode: "always", idleMin: 5, wake: "schedule",
   timerSel: "pomo",
   layout: {
@@ -290,28 +292,36 @@ const S = {
       { id: "relogio", size: "4x2" }, { id: "bateria", size: "2x2" }, { id: "notif", size: "4x2" }, { id: "contagem", size: "2x2" },
       { id: "nota", size: "4x2" }, { id: "timer", size: "2x2" }, { id: "repouso", size: "4x2" }, { id: "sistema", size: "2x2" },
     ],
+    // the three sample apps (apps/_exemplo_clima, _exemplo_json, _modelo) between a few bundled ones
+    yourapps: [
+      { id: "clima", size: "4x2" }, { id: "modelo", size: "2x2" }, { id: "servidor", size: "4x2" }, { id: "notif", size: "2x2" },
+      { id: "relogio", size: "4x2" }, { id: "bateria", size: "2x2" }, { id: "nota", size: "4x2" }, { id: "timer", size: "2x2" },
+    ],
     sleep: [
       { id: "relogio", size: "4x4" }, { id: "bateria", size: "2x2" }, { id: "contagem", size: "2x2" }, { id: "notif", size: "4x2" }, { id: "nota", size: "2x4" },
     ],
   },
   notifs: [
-    { app: "timer", title: "Tempo esgotado", body: "25 min concluídos", prio: "normal", t: "14:25", read: false },
-    { app: "contagem", title: "Hoje: Entrega do livro", body: "chegou o dia", prio: "alta", t: "08:00", read: false },
-    { app: "bateria", title: "Bateria em 15%", body: "ligue o carregador", prio: "alta", t: "Ontem", read: true },
-    { app: "sistema", title: "Wi-Fi reconectado", body: "Casa", prio: "normal", t: "Ontem", read: true },
-    { app: "timer", title: "Tempo esgotado", body: "pausa terminada", prio: "normal", t: "Ontem", read: true },
+    { app: "timer", title: "Time is up", body: "25 min completed", prio: "normal", t: "14:25", read: false },
+    { app: "contagem", title: "Today: Moving", body: "the day has come", prio: "alta", t: "08:00", read: false },
+    { app: "bateria", title: "Battery at 15%", body: "plug in the charger", prio: "alta", t: "Yesterday", read: true },
+    { app: "sistema", title: "nas is back", body: "nas answered again", prio: "normal", t: "Yesterday", read: true },
+    { app: "timer", title: "Time is up", body: "break is over", prio: "normal", t: "Yesterday", read: true },
   ],
-  note: "Comprar pão\nLigar para o banco\nRegar as plantas",
-  counts: [{ name: "Mudança", days: 12, date: "28/10/2026" }, { name: "Férias", days: 65, date: "20/12/2026" }, { name: "Maratona", days: 120, date: "14/02/2027" }],
+  note: "Buy bread\nCall the bank\nWater the plants",
+  counts: [{ name: "Moving", days: 12, date: "2026-10-28" }, { name: "Vacation", days: 65, date: "2026-12-20" }, { name: "Marathon", days: 120, date: "2027-02-14" }],
 };
 const APPS = {
-  bateria: { name: "Bateria", short: "Bat.", sizes: ["2x2", "4x2", "1x1"] },
-  contagem: { name: "Contagem", short: "Cont.", sizes: ["2x2", "4x2", "1x1"] },
-  nota: { name: "Nota", short: "Nota", sizes: ["2x2", "4x2", "2x4", "4x4"] },
-  notif: { name: "Notificações", short: "Notif.", sizes: ["2x2", "4x2", "4x4"] },
-  relogio: { name: "Relógio", short: "Relógio", sizes: ["2x2", "4x2", "4x4", "2x4", "1x1"] },
-  repouso: { name: "Repouso", short: "Repouso", sizes: ["2x2", "4x2", "1x1"] },
-  sistema: { name: "Sistema", short: "Sist.", sizes: ["1x1", "2x2"] },
+  clima: { name: "Weather", short: "Weather", sizes: ["2x2", "4x2"], sample: true },       // apps/_exemplo_clima (web service)
+  servidor: { name: "Home server", short: "Server", sizes: ["2x2", "4x2"], sample: true }, // apps/_exemplo_json (your own server)
+  modelo: { name: "Counter", short: "Count.", sizes: ["2x2", "4x2"], sample: true },     // apps/_modelo (local)
+  bateria: { name: "Battery", short: "Batt.", sizes: ["2x2", "4x2", "1x1"] },
+  contagem: { name: "Countdown", short: "Count.", sizes: ["2x2", "4x2", "1x1"] },
+  nota: { name: "Note", short: "Note", sizes: ["2x2", "4x2", "2x4", "4x4"] },
+  notif: { name: "Notifications", short: "Notif.", sizes: ["2x2", "4x2", "4x4"] },
+  relogio: { name: "Clock", short: "Clock", sizes: ["2x2", "4x2", "4x4", "2x4", "1x1"] },
+  repouso: { name: "Sleep", short: "Sleep", sizes: ["2x2", "4x2", "1x1"] },
+  sistema: { name: "System", short: "Sys.", sizes: ["1x1", "2x2"] },
   timer: { name: "Timer", short: "Timer", sizes: ["2x2", "4x2", "1x1"] },
 };
 const $ = (s, el = document) => el.querySelector(s);
@@ -320,12 +330,13 @@ const current = () => S.stack[S.stack.length - 1];
 const dims = () => S.landscape ? [800, 600] : [600, 800];
 const gridDims = () => S.landscape ? [8, 6] : [6, 8];
 const parseSize = s => s.split("x").map(Number);
+const isHome = () => ["home", "yourapps"].includes(current().r);
 const unread = () => S.notifs.filter(n => !n.read);
-const NAME = { timer: "Timer", contagem: "Contagem", bateria: "Bateria", sistema: "Sistema" };
+const NAME = { timer: "Timer", contagem: "Countdown", bateria: "Battery", sistema: "System" };
 const hm = "14:32";
 const eta = "~14h";
 
-// ---------------------------------------------------------------- ícones
+// ---------------------------------------------------------------- icons
 const I = (body, w = 30) => `<svg width="${w}" height="${w}" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3">${body}</svg>`;
 const ICON = {
   bateria: I('<rect x="2" y="9" width="24" height="14"/><rect x="27" y="13" width="3" height="6" fill="currentColor"/><rect x="6" y="13" width="12" height="6" fill="currentColor" stroke="none"/>'),
@@ -341,7 +352,7 @@ function batteryIcon(w = 34, h = 18, pct = S.pct) {
   return `<svg width="${w + 4}" height="${h}" viewBox="0 0 ${w + 4} ${h}"><rect x="1" y="1" width="${w - 2}" height="${h - 2}" fill="none" stroke="currentColor" stroke-width="2"/><rect x="${w}" y="${h * 0.28}" width="4" height="${h * 0.44}" fill="currentColor"/><rect x="4" y="4" width="${fill}" height="${h - 8}" fill="currentColor"/></svg>`;
 }
 const bellIcon = '<svg width="24" height="26" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3"><path d="M8 22V14a8 8 0 0 1 16 0v8l3 3H5z"/><path d="M13 28h6"/></svg>';
-// mostrador analógico para 14:32: ponteiros de hora e minuto
+// analog dial for 14:32: hour and minute hands
 function face(d) {
   const c = d / 2, r = c - 3, a = (14 % 12 + 32 / 60) * 30, m = 32 * 6;
   const p = (deg, len) => `${(c + Math.sin(deg * Math.PI / 180) * len).toFixed(1)},${(c - Math.cos(deg * Math.PI / 180) * len).toFixed(1)}`;
@@ -356,7 +367,10 @@ function spark(w = 150, h = 50) {
 }
 
 // ---------------------------------------------------------------- widgets
-const head = id => `<span class="wh"><span class="wn">${esc(APPS[id].name)}</span>${ICON[id] || ""}</span>`;
+// sample apps carry a "sample" tag: in the header when the widget is wide, on its own line at the bottom when narrow
+const head = (id, w = 4) => `<span class="wh"><span class="wn">${esc(APPS[id].name)}</span>${APPS[id].sample && w >= 4 ? '<span class="tag">sample</span>' : ""}${ICON[id] || ""}</span>`;
+const foot = (id, w) => APPS[id].sample && w < 4 ? '<span style="margin-top:auto"><span class="tag">sample</span></span>' : "";
+const lines = (arr) => arr.map(([a, b]) => `<span class="wl"><span>${a}</span><span>${b}</span></span>`).join("");
 function relogioWidget(size, w, h) {
   const st = S.style, wide = w >= 4;
   if (size === "1x1") return { cls: "one", html: `<b>${hm}</b>` };
@@ -367,8 +381,8 @@ function relogioWidget(size, w, h) {
     return { cls: "", html: `<span class="vstack">${face(130)}</span>` };
   }
   if (st === "data") {
-    if (wide) return { cls: "", html: `<span class="vstack">${big(h >= 4 ? 130 : 100)}<span style="font-size:${h >= 4 ? 30 : 22}px">sexta, 16 de outubro</span></span>` };
-    return { cls: "", html: `<span class="vstack">${big(60)}<span style="font-size:22px">sexta</span><span style="font-size:22px">16 de outubro</span></span>` };
+    if (wide) return { cls: "", html: `<span class="vstack">${big(h >= 4 ? 130 : 100)}<span style="font-size:${h >= 4 ? 30 : 22}px">Friday, October 16</span></span>` };
+    return { cls: "", html: `<span class="vstack">${big(60)}<span style="font-size:22px">Friday</span><span style="font-size:22px">October 16</span></span>` };
   }
   if (st === "minimo") return { cls: "", html: `<span class="vstack">${big(wide ? 130 : 80)}</span>` };
   return { cls: "", html: `<span class="vstack">${big(wide ? 150 : 80)}</span>` };
@@ -384,7 +398,7 @@ function widgetBody(id, size) {
   }
   if (id === "notif") {
     const u = unread().length, list = S.notifs;
-    const p = u ? `${u} novas` : "nada novo";
+    const p = u ? `${u} new` : "nothing new";
     if (size === "2x2") return { cls: "", html: `${head(id)}<span class="wp">${p}</span><span class="ws">${esc(list[0].title)}</span>` };
     const k = h === 4 ? 5 : 2;
     return { cls: "", html: `${head(id)}<span class="wp">${p}</span>` + list.slice(0, k).map(n => `<span class="wl"><span>${n.read ? "" : "● "}${esc(n.title)}</span><span>${n.t}</span></span>`).join("") };
@@ -392,32 +406,41 @@ function widgetBody(id, size) {
   if (id === "timer") {
     if (size === "1x1") return { cls: "one", html: `<b>▶</b>` };
     const base = `<span class="wh"><span class="wn">Timer</span></span><span class="wp">25 min</span><span class="ws">pomodoro 25/5</span>`;
-    return { cls: "", html: base + (w >= 4 ? `<span class="wl"><span>pronto</span><span></span></span>` : "") };
+    return { cls: "", html: base + (w >= 4 ? `<span class="wl"><span>ready</span><span></span></span>` : "") };
   }
   if (id === "nota") {
-    const t = S.note ? esc(S.note) : "toque para escrever";
+    const t = S.note ? esc(S.note) : "tap to write";
     const fs = size === "2x2" || size === "4x2" ? 20 : 24;
-    return { cls: "", html: `<span class="wh"><span class="wn">Nota</span></span><span class="wnote" style="font-size:${fs}px">${t}</span>` };
+    return { cls: "", html: `<span class="wh"><span class="wn">Note</span></span><span class="wnote" style="font-size:${fs}px">${t}</span>` };
   }
   if (id === "contagem") {
     const c = S.counts;
     if (size === "1x1") return { cls: "one", html: `<b>${c[0].days}</b>` };
-    if (w >= 4) return { cls: "", html: `<span class="wh"><span class="wn">${c[0].name}</span></span><span class="wp">${c[0].days} dias</span><span class="ws">faltam ${c[0].days} dias para ${c[0].name}</span>` + c.slice(1).map(x => `<span class="wl"><span>${x.name}</span><span>${x.days} dias</span></span>`).join("") };
-    return { cls: "", html: `<span class="wh"><span class="wn">${c[0].name}</span></span><span class="wp">${c[0].days} dias</span><span class="ws">em ${c[0].date}</span>` };
+    if (w >= 4) return { cls: "", html: `<span class="wh"><span class="wn">${c[0].name}</span></span><span class="wp">${c[0].days} days</span><span class="ws">${c[0].days} days until ${c[0].name}</span>` + c.slice(1).map(x => `<span class="wl"><span>${x.name}</span><span>${x.days} days</span></span>`).join("") };
+    return { cls: "", html: `<span class="wh"><span class="wn">${c[0].name}</span></span><span class="wp">${c[0].days} days</span><span class="ws">on ${c[0].date}</span>` };
   }
   if (id === "repouso") {
-    if (size === "1x1") return { cls: "one", html: `<b style="font-size:20px">Dormir</b><span style="font-size:20px">agora</span>` };
-    const modeShort = { always: "sempre", battery: "bateria", never: "nunca" }[S.idleMode];
+    if (size === "1x1") return { cls: "one", html: `<b style="font-size:20px">Sleep</b><span style="font-size:20px">now</span>` };
+    const modeShort = { always: "always", battery: "battery", never: "never" }[S.idleMode];
     if (w >= 4 && h >= 2) {
       const alone = S.idleMode !== "never";
       const b = (l, sub, inv) => `<span class="scr-btn ${inv ? "inv" : ""}" style="flex:1;flex-direction:column;min-height:64px;padding:0 4px;font-size:22px">${l}<small style="font-size:20px;font-weight:400">${sub}</small></span>`;
-      return { cls: "", html: `<span class="wh"><span class="wn">Repouso</span></span><span class="tbtns">${b(alone ? S.idleMin + " min" : "–", "sem tocar")}${b(modeShort, "sozinho", alone)}${b("Dormir", "agora")}</span>` };
+      return { cls: "", html: `<span class="wh"><span class="wn">Sleep</span></span><span class="tbtns">${b(alone ? S.idleMin + " min" : "–", "idle")}${b(modeShort, "auto", alone)}${b("Sleep", "now")}</span>` };
     }
-    return { cls: "", html: `<span class="wh"><span class="wn">Repouso</span></span><span class="wl" style="border:0"><span>sozinho</span><span>${modeShort}</span></span><span class="wl" style="border:0"><span>depois de</span><span>${S.idleMin} min</span></span>` };
+    return { cls: "", html: `<span class="wh"><span class="wn">Sleep</span></span><span class="wl" style="border:0"><span>auto</span><span>${modeShort}</span></span><span class="wl" style="border:0"><span>after</span><span>${S.idleMin} min</span></span>` };
+  }
+  if (id === "clima") {   // sample: apps/_exemplo_clima, made-up values
+    return { cls: "", html: `${head(id, w)}<span class="wp">16°</span><span class="ws">cloudy</span>` + (w >= 4 ? lines([["rain", "rain at 15:00 (35%)"]]) : "") + foot(id, w) };
+  }
+  if (id === "servidor") {   // sample: apps/_exemplo_json, made-up host
+    return { cls: "", html: `${head(id, w)}<span class="wp">3 devices</span><span class="ws">at 14:30</span>` + (w >= 4 ? lines([["source", "nas.lan:8080"]]) : "") + foot(id, w) };
+  }
+  if (id === "modelo") {   // sample: apps/_modelo
+    return { cls: "", html: `${head(id, w)}<span class="wp">12 refreshes</span><span class="ws">last at 14:30</span>` + (w >= 4 ? lines([["notifies every", "5"]]) : "") + foot(id, w) };
   }
   if (id === "sistema") {
     if (size === "1x1") return { cls: "one", html: ICON.sistema };
-    return { cls: "", html: `${head(id)}<span class="wp">Conectado</span><span class="ws">v0.1</span>` };
+    return { cls: "", html: `${head(id)}<span class="wp">Connected</span><span class="ws">v0.1</span>` };
   }
   return { cls: "", html: "" };
 }
@@ -452,9 +475,9 @@ function widgetGrid(items, interactive = true) {
   }).join("")}</div>`;
 }
 
-// ---------------------------------------------------------------- componentes globais
+// ---------------------------------------------------------------- global components
 function statusBar() {
-  if (S.sleep) return `<div class="sb"><span class="sleepinfo">Repouso · atualizado 14:30 · próxima 15:00</span><span class="spacer"></span><span class="bat" style="cursor:default">${S.pct}% ${batteryIcon()}</span></div>`;
+  if (S.sleep) return `<div class="sb"><span class="sleepinfo">Sleep · updated 14:30 · next 15:00</span><span class="spacer"></span><span class="bat" style="cursor:default">${S.pct}% ${batteryIcon()}</span></div>`;
   const u = unread().length;
   return `<div class="sb">
     <span class="clock" data-act="refresh">${hm}</span>
@@ -465,11 +488,11 @@ function statusBar() {
   </div>`;
 }
 function navBar() {
-  const home = current().r === "home";
+  const home = isHome();
   return `<div class="nav">
-    <button type="button" data-act="home" ${home ? "disabled" : ""}>⌂ Início</button>
-    <button type="button" data-act="back" ${S.stack.length < 2 ? "disabled" : ""}>‹ Voltar</button>
-    <button type="button" data-act="refresh">↻ Atualizar</button>
+    <button type="button" data-act="home" ${home ? "disabled" : ""}>⌂ Home</button>
+    <button type="button" data-act="back" ${S.stack.length < 2 ? "disabled" : ""}>‹ Back</button>
+    <button type="button" data-act="refresh">↻ Refresh</button>
     <button type="button" data-act="menu">☰ Menu</button>
   </div>`;
 }
@@ -480,65 +503,82 @@ function row(act, title, sub, right, extra = "") {
 const sec = t => `<div class="sec">${t}</div>`;
 const btnRow = (arr) => `<div class="btnrow fill">${arr.map(([l, a, inv]) => `<button type="button" class="scr-btn ${inv ? "inv" : ""}" ${a}>${l}</button>`).join("")}</div>`;
 
-// ---------------------------------------------------------------- telas
+// ---------------------------------------------------------------- screens
 function homeScreen() { return widgetGrid(pack(S.layout.home)[0]); }
+function yourAppsScreen() { return widgetGrid(pack(S.layout.yourapps)[0]); }
+// the sample apps' screens (made-up values): Weather = apps/_exemplo_clima, Home server = apps/_exemplo_json, Counter = apps/_modelo (the template, renamed)
+function bigBlock(big, size, l1, l2) {
+  return `<div class="vstack" style="flex:none;gap:4px"><div class="hugetxt" style="font-size:${size}px">${big}</div><div class="bigtitle" style="font-size:26px">${l1}</div><div style="font-size:20px">${l2}</div></div>`;
+}
+function climaScreen() {
+  const hrs = [["15:00", "rain", "16° · 35%"], ["16:00", "rain", "15° · 65%"], ["17:00", "rain", "14° · 80%"], ["18:00", "rain", "13° · 70%"],
+    ["19:00", "cloudy", "13° · 45%"], ["20:00", "cloudy", "12° · 30%"], ["21:00", "partly cloudy", "12° · 20%"], ["22:00", "partly cloudy", "11° · 10%"]];
+  const rows = hrs.slice(0, S.landscape ? 4 : 6).map(([t, d, r]) => row('data-act="noop"', t, d, r)).join("");
+  return `${appHeader("Weather · °C")}${bigBlock("16°", S.landscape ? 72 : 96, "cloudy", "rain at 15:00 (35%) · at 14:00")}<div class="list">${rows}</div>`;
+}
+function servidorScreen() {
+  return `${appHeader("Value")}<div class="vstack">${bigBlock("3", S.landscape ? 96 : 150, "Home server", "at 14:30 · nas.lan:8080")}</div><button type="button" class="scr-btn inv">Re-arm alert</button>`;
+}
+function modeloScreen() {
+  return `${appHeader("Counter")}<div class="vstack">${bigBlock("12", S.landscape ? 96 : 150, "refreshes", "last at 14:30")}</div><button type="button" class="scr-btn inv">Reset</button>`;
+}
 function sleepPage() {
   const pages = pack(S.layout.sleep);
-  return `<div class="sleep-alert">${unread().length} não lidas</div>${widgetGrid(pages[0], false)}<div class="sleep-note">Em repouso. Aperte o botão de energia para usar a Tinta.</div>`;
+  return `<div class="sleep-alert">${unread().length} unread</div>${widgetGrid(pages[0], false)}<div class="sleep-note">Sleeping. Press the power button to use Tinta.</div>`;
 }
 function centralScreen() {
   const per = S.landscape ? 2 : 3;
   const list = S.notifs.slice(0, per).map(n => `
     <button type="button" class="ncard ${n.read ? "" : "unread"} ${n.prio === "alta" && !n.read ? "high" : ""}">
-      <span class="nh"><span>${esc(NAME[n.app])}${n.prio === "alta" ? " · alta" : ""}</span><span>${n.t}</span></span>
+      <span class="nh"><span>${esc(NAME[n.app])}${n.prio === "alta" ? " · high" : ""}</span><span>${n.t}</span></span>
       <span class="nt">${esc(n.title)}</span><span class="nb">${esc(n.body)}</span></button>`).join("");
-  const more = S.notifs.length > per ? `<div class="note" style="margin-top:0">+ ${S.notifs.length - per} mais antigas</div>` : "";
-  return `${appHeader("Central", `${unread().length} não lidas`)}
+  const more = S.notifs.length > per ? `<div class="note" style="margin-top:0">+ ${S.notifs.length - per} older</div>` : "";
+  return `${appHeader("Center", `${unread().length} unread`)}
     <div class="qt">
-      <button type="button" class="scr-btn inv">Wi-Fi<small>ligado</small></button>
-      <button type="button" class="scr-btn" data-act="sleep-now">Repouso<small>agora</small></button>
-      <button type="button" class="scr-btn" data-act="rotate">Girar<small>${S.landscape ? "paisagem" : "retrato"}</small></button>
-      <button type="button" class="scr-btn" data-open="sistema">Sistema<small>ajustes</small></button>
+      <button type="button" class="scr-btn inv">Wi-Fi<small>on</small></button>
+      <button type="button" class="scr-btn" data-act="sleep-now">Sleep<small>now</small></button>
+      <button type="button" class="scr-btn" data-act="rotate">Rotate<small>${S.landscape ? "landscape" : "portrait"}</small></button>
+      <button type="button" class="scr-btn" data-open="sistema">System<small>settings</small></button>
     </div>
     <div class="list">${list}${more}</div>
-    ${btnRow([["Marcar todas como lidas", ""], ["Limpar", ""]])}`;
+    ${btnRow([["Mark all as read", ""], ["Clear", ""]])}`;
 }
 function appsScreen() {
-  const ids = Object.keys(APPS).sort((a, b) => APPS[a].name.localeCompare(APPS[b].name, "pt"));
-  const rows = ids.map(id => row(`data-open="${id === "notif" ? "central" : id}"`, APPS[id].name, "", "no Início")).join("");
+  const ids = Object.keys(APPS).filter(id => !APPS[id].sample || S.samples).sort((a, b) => APPS[a].name.localeCompare(APPS[b].name, "en"));
+  const rows = ids.map(id => row(`data-open="${id === "notif" ? "central" : id}"`, APPS[id].name + (APPS[id].sample ? " · sample" : ""), APPS[id].sample ? "dev app (needs dev_apps)" : "", APPS[id].sample ? "" : "on Home")).join("");
   return `${appHeader("Apps", `${ids.length} apps`)}<div class="list ${S.landscape ? "cols two" : ""}" style="${S.landscape ? "display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:4px 10px" : ""}">${rows}</div>`;
 }
 function sistemaScreen() {
   const rows = [
-    row('data-act="noop"', "Wi-Fi", "Conectado", "<b>Desligar</b>"),
-    row('data-org="home"', "Organizar", "Início e página de repouso", "›"),
-    row('data-act="noop"', "Notificações", "por app, aviso no topo, repouso", "›"),
-    row('data-act="noop"', "Atualizações", "intervalos, horários, silêncio 23h–7h", "›"),
-    row('data-go="sleepcfg"', "Repouso", `dorme sozinho: ${({always:"sempre",battery:"só na bateria",never:"nunca"})[S.idleMode]} · atualiza: pelo horário`, "›"),
-    row('data-act="noop"', "Conexões", "nenhum servidor", "›"),
-    row('data-act="noop"', "Tela e navegação", `barra + gestos · ${S.landscape ? "paisagem" : "retrato"}`, "›"),
-    row('data-act="noop"', "Apps", "configurações de cada app", "›"),
-    row('data-act="noop"', "Dados", "tinta.sqlite3 · 212 KB", "›"),
-    row('data-act="noop"', "Sair para o KOReader", "fecha a Tinta", "›"),
+    row('data-act="noop"', "Wi-Fi", "Connected", "<b>Turn off</b>"),
+    row('data-org="home"', "Organize", "Home and sleep page", "›"),
+    row('data-act="noop"', "Notifications", "per app, top banner, sleep", "›"),
+    row('data-act="noop"', "Updates", "intervals, windows, quiet 23h–7h", "›"),
+    row('data-go="sleepcfg"', "Sleep", `sleeps by itself: ${({always:"always",battery:"on battery only",never:"never"})[S.idleMode]} · refreshes: by schedule`, "›"),
+    row('data-act="noop"', "Connections", S.samples ? "all responding" : "no servers", "›"),
+    row('data-act="noop"', "Screen and navigation", `bar + gestures · ${S.landscape ? "landscape" : "portrait"}`, "›"),
+    row('data-act="noop"', "Apps", "settings of each app", "›"),
+    row('data-act="noop"', "Data", "tinta.sqlite3 · 212 KB", "›"),
+    row('data-act="noop"', "Exit to KOReader", "closes Tinta", "›"),
   ].join("");
-  return `${appHeader("Sistema")}<div class="cols two">${rows}</div>`;
+  return `${appHeader("System")}<div class="cols two">${rows}</div>`;
 }
 function sleepcfgScreen() {
   const m = S.idleMode;
-  const modeTxt = { always: "sempre", battery: "só na bateria", never: "nunca" }[m];
-  const modeSub = { always: "com ou sem o cabo ligado", battery: "não dorme com o cabo ligado", never: "não dorme sozinho" }[m];
+  const modeTxt = { always: "always", battery: "on battery only", never: "never" }[m];
+  const modeSub = { always: "plugged in or not", battery: "does not sleep while plugged in", never: "does not sleep by itself" }[m];
   const L = S.landscape;
-  return `${appHeader("Repouso")}
+  return `${appHeader("Sleep")}
     <div class="cols ${L ? "two" : ""}">
-      ${L ? "" : sec("QUANDO DORMIR")}
-      ${row('data-act="idlemode"', "Dormir sozinho", modeSub, modeTxt)}
-      ${m !== "never" ? row('data-act="noop"', "Depois de", "sem tocar na tela", `${S.idleMin} min`) : ""}
-      ${row('data-act="noop"', "Dormir agora", "o botão de energia acorda", "›")}
-      ${L ? "" : sec("ENQUANTO DORME")}
-      ${row('data-act="noop"', "Atualizar a tela", "liga o Wi-Fi, atualiza e volta a dormir", "pelo horário")}
-      ${L ? "" : `<div class="notelines">dias úteis 07:30–18:30 a cada 30 min<br>18:30–23:00 a cada 1 h<br>23:00–07:30 não atualiza<br>(fins de semana: a cada 1 h · horários fixos nesta versão)</div>`}
-      ${row('data-act="noop"', "Títulos na tela de repouso", "esconde o título no aviso do topo", "mostrar")}
-      ${row('data-go="organizar"', "O que aparece na tela", `${S.layout.sleep.length} widgets · editar no organizador`, "›")}
+      ${L ? "" : sec("WHEN TO SLEEP")}
+      ${row('data-act="idlemode"', "Sleep by itself", modeSub, modeTxt)}
+      ${m !== "never" ? row('data-act="noop"', "After", "without touching the screen", `${S.idleMin} min`) : ""}
+      ${row('data-act="noop"', "Sleep now", "the power button wakes it", "›")}
+      ${L ? "" : sec("WHILE ASLEEP")}
+      ${row('data-act="noop"', "Refresh the screen", "turns Wi-Fi on, refreshes and goes back to sleep", "by schedule")}
+      ${L ? "" : `<div class="notelines">weekdays 07:30–18:30 every 30 min<br>18:30–23:00 every 1 h<br>23:00–07:30 does not refresh<br>(weekends: every 1 h · fixed times in this version)</div>`}
+      ${row('data-act="noop"', "Titles on the sleep page", "hides the title in the top strip", "show")}
+      ${row('data-go="organizar"', "What shows on the screen", `${S.layout.sleep.length} widgets · edit in the organizer`, "›")}
     </div>`;
 }
 function organizeScreen() {
@@ -549,56 +589,56 @@ function organizeScreen() {
     const label = it.w >= 2 ? APPS[it.id].short : APPS[it.id].short.slice(0, 2);
     return `<button type="button" class="${it.id === sel.id ? "sel" : ""}" data-sel="${it.id}" style="grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}">${esc(label)}${it.w >= 2 && it.h >= 2 ? "<br>" + it.size.replace("x", "×") : ""}</button>`;
   }).join("");
-  const free = Object.keys(APPS).filter(id => !list.some(x => x.id === id) && id !== "sistema");
-  return `${appHeader("Organizar", "1 página")}
+  const free = Object.keys(APPS).filter(id => !list.some(x => x.id === id) && id !== "sistema" && !APPS[id].sample);
+  return `${appHeader("Organize", "1 page")}
     <div class="org">
-      <div class="seg-k"><button type="button" data-act="org-home" aria-pressed="${mode === "home"}">Início</button><button type="button" data-act="org-sleep" aria-pressed="${mode === "sleep"}">Repouso</button></div>
+      <div class="seg-k"><button type="button" data-act="org-home" aria-pressed="${mode === "home"}">Home</button><button type="button" data-act="org-sleep" aria-pressed="${mode === "sleep"}">Sleep</button></div>
       <div class="map">${map}</div>
       <div class="ctrl">
         <div class="info">${esc(APPS[sel.id].name)} · ${sel.size.replace("x", "×")}</div>
         <div class="btnrow fill">
-          <button type="button" class="scr-btn">↑ Antes</button><button type="button" class="scr-btn">↓ Depois</button><button type="button" class="scr-btn">Tamanho ▸</button>
+          <button type="button" class="scr-btn">↑ Before</button><button type="button" class="scr-btn">↓ After</button><button type="button" class="scr-btn">Size ▸</button>
         </div>
         <div class="btnrow fill">
-          <button type="button" class="scr-btn">${mode === "sleep" ? "Tirar" : "Ocultar"}</button><button type="button" class="scr-btn inv" data-act="back">Pronto</button>
+          <button type="button" class="scr-btn">${mode === "sleep" ? "Remove" : "Hide"}</button><button type="button" class="scr-btn inv" data-act="back">Done</button>
         </div>
-        <div class="hidden-row">${mode === "sleep" ? (free.length ? "Adicionar: " + free.map(id => `<button type="button">${esc(APPS[id].name)}</button>`).join("") : "Nenhuma app para adicionar.") : "Nenhuma app oculta."}</div>
+        <div class="hidden-row">${mode === "sleep" ? (free.length ? "Add: " + free.map(id => `<button type="button">${esc(APPS[id].name)}</button>`).join("") : "No apps to add.") : "No hidden apps."}</div>
       </div>
     </div>`;
 }
 function relogioScreen() {
-  const styles = [["digital", "Digital grande", "HH:MM em tamanho grande"], ["data", "Digital com data", "hora, dia da semana e data"], ["analogico", "Analógico", "mostrador com ponteiros"], ["minimo", "Mínimo", "hora e próximo despertar"]];
+  const styles = [["digital", "Big digital", "HH:MM in large type"], ["data", "Digital with date", "time, weekday and date"], ["analogico", "Analog", "dial with hands"], ["minimo", "Minimal", "time and next wake-up"]];
   const pv = widgetBody("relogio", "4x2");
   const rows = styles.map(([id, t, s]) => row(`data-style="${id}"`, t, s, S.style === id ? "●" : "", S.style === id ? "inv" : "")).join("");
   const land = S.landscape;
   const prev = `<div class="w" style="${land ? "flex:none;width:384px;height:170px;" : "flex:none;height:150px;"}cursor:default">${pv.html}</div>`;
-  return `${appHeader("Relógio")}${land ? `<div style="display:flex;gap:8px;flex:1;min-height:0">${prev}<div class="list">${rows}</div></div>` : `${prev}<div class="list">${rows}</div>`}`;
+  return `${appHeader("Clock")}${land ? `<div style="display:flex;gap:8px;flex:1;min-height:0">${prev}<div class="list">${rows}</div></div>` : `${prev}<div class="list">${rows}</div>`}`;
 }
 function timerScreen() {
   const sel = S.timerSel;
-  const pre = [["pomo", "25/5"], ["m15", "15 min"], ["m10", "10 min"], ["m5", "5 min"], ["custom", "Outro…"]];
+  const pre = [["pomo", "25/5"], ["m15", "15 min"], ["m10", "10 min"], ["m5", "5 min"], ["custom", "Other…"]];
   const b = pre.map(([id, l]) => `<button type="button" class="scr-btn ${sel === id ? "inv" : ""}" data-timersel="${id}" style="flex:1;padding:0 2px;font-size:${S.landscape ? 22 : 20}px">${l}</button>`).join("");
   const big = sel === "pomo" ? "25 min" : sel === "m15" ? "15 min" : sel === "m10" ? "10 min" : sel === "m5" ? "5 min" : "30 min";
-  const sub = sel === "pomo" ? "pomodoro 25/5" : "pronto";
+  const sub = sel === "pomo" ? "pomodoro 25/5" : "ready";
   return `${appHeader("Timer")}
     <div class="vstack" style="gap:${S.landscape ? 4 : 10}px">
-      <div class="bigtitle">pronto</div>
+      <div class="bigtitle">ready</div>
       <div class="hugetxt" style="font-size:${S.landscape ? 84 : 120}px">${big}</div>
       <div style="font-size:22px">${sub}</div>
     </div>
     <div class="btnrow" style="flex-wrap:nowrap">${b}</div>
-    <button type="button" class="scr-btn inv">Iniciar</button>
-    <div class="sleep-note" style="border:0;padding:0">${sel === "pomo" ? "Pomodoro: foco e pausa em sequência" : "&nbsp;"}</div>`;
+    <button type="button" class="scr-btn inv">Start</button>
+    <div class="sleep-note" style="border:0;padding:0">${sel === "pomo" ? "Pomodoro: focus and break in sequence" : "&nbsp;"}</div>`;
 }
 function notaScreen() {
-  return `${appHeader("Nota")}
+  return `${appHeader("Note")}
     <div class="notefield" style="white-space:pre-line">${esc(S.note)}</div>
-    <div style="text-align:right;font-size:20px;padding:0 4px">${S.note.length} caracteres</div>
-    ${btnRow([["Editar", "", true], ["Limpar", ""]])}`;
+    <div style="text-align:right;font-size:20px;padding:0 4px">${S.note.length} characters</div>
+    ${btnRow([["Edit", "", true], ["Clear", ""]])}`;
 }
 function contagemScreen() {
-  const rows = S.counts.map(c => row('data-act="noop"', `faltam ${c.days} dias para ${c.name}`, c.date, `${c.days} dias`)).join("");
-  return `${appHeader("Contagem")}<div class="list">${rows}</div><button type="button" class="scr-btn inv">Nova</button>`;
+  const rows = S.counts.map(c => row('data-act="noop"', `${c.days} days until ${c.name}`, c.date, `${c.days} days`)).join("");
+  return `${appHeader("Countdown")}<div class="list">${rows}</div><button type="button" class="scr-btn inv">New</button>`;
 }
 function bateriaScreen() {
   const W = 560, H = S.landscape ? 150 : 220, L = 44, R = 10, T = 10, B = 30;
@@ -607,26 +647,26 @@ function bateriaScreen() {
   const grid = [100, 80, 60].map((p, i) => { const y = T + i * (H - T - B) / 2.4; return `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke-width="1" stroke-dasharray="2 4"/><text x="${L - 6}" y="${y + 6}" text-anchor="end" font-size="18" fill="currentColor" stroke="none">${p}%</text>`; }).join("");
   const hours = [8, 10, 12, 14].map((h, i) => `<text x="${L + i * 150}" y="${H - 6}" font-size="18" fill="currentColor" stroke="none">${h}h</text>`).join("");
   const l = pts[pts.length - 1].split(",");
-  return `${appHeader("Bateria")}
-    <div class="batbig"><span class="pct">${S.pct}%</span>${batteryIcon(110, 52)}<span class="eta">${eta} restantes</span></div>
+  return `${appHeader("Battery")}
+    <div class="batbig"><span class="pct">${S.pct}%</span>${batteryIcon(110, 52)}<span class="eta">${eta} left</span></div>
     <div class="chart"><svg viewBox="0 0 ${W} ${H}" fill="none" stroke="currentColor">${grid}${hours}<line x1="${L}" x2="${L}" y1="${T}" y2="${H - B}" stroke-width="2"/><line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke-width="2"/><polyline points="${pts.join(" ")}" stroke-width="4" stroke-linejoin="round"/><circle cx="${l[0]}" cy="${l[1]}" r="6" fill="currentColor"/></svg></div>
     <div class="mini">
-      <div class="stat"><b>42 mA</b><span>média</span></div><div class="stat"><b>907</b><span>mAh cheia</span></div>
-      <div class="stat"><b>23 °C</b><span>temperatura</span></div><div class="stat"><b>3.120</b><span>amostras</span></div>
+      <div class="stat"><b>42 mA</b><span>average</span></div><div class="stat"><b>907</b><span>mAh full</span></div>
+      <div class="stat"><b>23 °C</b><span>temperature</span></div><div class="stat"><b>3,120</b><span>samples</span></div>
     </div>`;
 }
 function menuSheet() {
-  const home = current().r === "home";
+  const home = isHome();
   const items = home
-    ? ["Apps", "Organizar o início", "Atualizar todas as apps", "Central de notificações", "Abrir Sistema", "Dormir agora"]
-    : [`Atualizar ${(APPS[current().r] || {name: "app"}).name} agora`, "Apps", "Central de notificações", "Abrir Sistema", "Dormir agora"];
-  const act = t => t === "Apps" ? 'data-open="apps"' : t.startsWith("Organizar") ? 'data-org="home"' : t === "Central de notificações" ? 'data-open="central"' : t === "Abrir Sistema" ? 'data-open="sistema"' : t === "Dormir agora" ? 'data-act="sleep-now"' : 'data-act="menu-close"';
+    ? ["Apps", "Organize home", "Refresh all apps", "Notification center", "Open System", "Sleep now"]
+    : [`Refresh ${(APPS[current().r] || {name: "app"}).name} now`, "Apps", "Notification center", "Open System", "Sleep now"];
+  const act = t => t === "Apps" ? 'data-open="apps"' : t.startsWith("Organize") ? 'data-org="home"' : t === "Notification center" ? 'data-open="central"' : t === "Open System" ? 'data-open="sistema"' : t === "Sleep now" ? 'data-act="sleep-now"' : 'data-act="menu-close"';
   const h = 52 + items.length * 60;
-  return `<div class="backdrop" data-act="menu-close"></div><div class="sheet" style="bottom:72px"><div class="sh-t">${home ? "Menu · Início" : "Menu · " + (APPS[current().r] || {name: ""}).name}</div>${items.map(t => `<button type="button" ${act(t)}>${t}</button>`).join("")}</div>`;
+  return `<div class="backdrop" data-act="menu-close"></div><div class="sheet" style="bottom:72px"><div class="sh-t">${home ? "Menu · Home" : "Menu · " + (APPS[current().r] || {name: ""}).name}</div>${items.map(t => `<button type="button" ${act(t)}>${t}</button>`).join("")}</div>`;
 }
 
 const SCREENS = {
-  home: homeScreen, central: centralScreen, apps: appsScreen, sistema: sistemaScreen, sleepcfg: sleepcfgScreen, organizar: organizeScreen,
+  home: homeScreen, yourapps: yourAppsScreen, clima: climaScreen, servidor: servidorScreen, modelo: modeloScreen, central: centralScreen, apps: appsScreen, sistema: sistemaScreen, sleepcfg: sleepcfgScreen, organizar: organizeScreen,
   relogio: relogioScreen, timer: timerScreen, nota: notaScreen, contagem: contagemScreen, bateria: bateriaScreen,
   repouso: () => sleepcfgScreen(),
 };
@@ -646,7 +686,7 @@ function render() {
   if (S.sleep) content = sleepPage();
   else content = (SCREENS[r] || homeScreen)();
   scr.innerHTML = statusBar() + `<div class="content">${content}${S.menu && !S.sleep ? menuSheet() : ""}</div>` + (S.sleep ? "" : navBar());
-  $("#caption").textContent = `Kindle KT3 · ${W} × ${H} · ${S.landscape ? "paisagem" : "retrato"}`;
+  $("#caption").textContent = `Kindle KT3 · ${W} × ${H} · ${S.landscape ? "landscape" : "portrait"}`;
   for (const [id, sel] of [["seg-orient", S.landscape ? "landscape" : "portrait"], ["seg-style", S.style], ["seg-view", S.sleep ? "sleep" : r]])
     document.querySelectorAll(`#${id} button`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === sel)));
 }

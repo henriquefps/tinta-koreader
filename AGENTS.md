@@ -23,7 +23,7 @@ tinta.koplugin/            the plugin (what gets installed into koreader/plugins
     backends/              one module per device family: kindle, kobo, generic (+ gauge.lua, driven.lua helpers)
   ui/                      screens and components (KOReader widgets): theme, host, home, organizer, central, wizard, kit, ...
   apps/<id>/               one folder per app: init.lua (manifest + wiring), logic.lua (pure), view.lua, strings.lua, tests/
-                           apps/_modelo and apps/_exemplo_json are the SDK references (load only with dev_apps)
+                           apps/_modelo, _exemplo_json and _exemplo_clima are the SDK references (load only with dev_apps)
   tests/                   suites of core/device, plus apprunner.lua and uistub.lua (helpers for app tests)
 tests/                     headless UI smokes (tinta_ui_*.lua), scale test, KT3 pixel baseline in tests/fixtures/
 scripts/                   test-all.sh, nova-app.sh (new app), deploy.sh (USB/SSH), pull-logs.sh, build-release.sh
@@ -77,8 +77,10 @@ scripts/nova-app.sh weather "Weather"     # copies apps/_modelo to apps/weather 
 
 Then edit `init.lua` (manifest + `refresh(ctx, done)` + `widget(ctx, size, box)` + `screens`), `logic.lua`, `view.lua` and
 `strings.lua`. Read [`docs/sdk.md`](docs/sdk.md): manifest fields, the `ctx` API, widget sizes, the scaled theme,
-notifications, performance rules, the publishing checklist. `apps/_exemplo_json` is the pattern for an app that fetches a
-JSON from a URL through `ctx.net` (tested with a fake `ctx.net`).
+notifications, performance rules, the publishing checklist. Three references, one per kind of app: `apps/_modelo` (local, no
+network), `apps/_exemplo_json` (talks to your own server: fetches a JSON from a URL through `ctx.net`) and
+`apps/_exemplo_clima` (uses a web service: Open-Meteo weather, with a notification at most once per day); the network ones are
+tested with a fake `ctx.net`.
 
 ## Hard rules (a PR that breaks one will not be merged)
 
@@ -129,7 +131,7 @@ external app deletes only inside `tinta-apps/`. Their `require("apps/<id>/...")`
 ## Release
 
 `scripts/build-release.sh` builds `dist/tinta-<version>.zip` containing `tinta.koplugin/` without `tests/` and without the dev
-apps (`_modelo`, `_exemplo_json`, `_test_*`). Pushing a tag `v*` runs `.github/workflows/release.yml`, which builds the same
+apps (`_modelo`, `_exemplo_json`, `_exemplo_clima`, `_test_*`). Pushing a tag `v*` runs `.github/workflows/release.yml`, which builds the same
 zip and attaches it to the GitHub release. The version shown by Tinta is in `tinta.koplugin/core/version.lua`.
 
 ## PR checklist
