@@ -1,3 +1,5 @@
+<img src="docs/img/icon.svg" alt="" width="96" height="96">
+
 # Tinta for KOReader
 
 **Tinta** is a [KOReader](https://koreader.rocks) plugin that turns an e-ink reader into an app dashboard: a home screen of widgets, a notification centre, per-app scheduled refresh over a single Wi-Fi connection, and a **sleep page** that stays on screen while the device sleeps and wakes on its clock only to refresh. It is a platform on top of KOReader (which already handles the screen, touch, Wi-Fi and suspend), not an operating system. Black and white, no animations, built for e-ink.
