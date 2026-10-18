@@ -2,56 +2,263 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tinta · prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tinta, a dashboard for e-ink Kindles</title>
+<meta name="description" content="Tinta is a KOReader plugin that turns an e-ink Kindle into an app dashboard: widgets, notifications and a sleep page that wakes only to refresh. Try the live demo in your browser.">
+<link rel="canonical" href="https://tinta.hfps.dev/">
+<meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0d0a" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinta">
+<meta property="og:title" content="Tinta, a dashboard for e-ink Kindles">
+<meta property="og:description" content="A KOReader plugin that turns an e-ink Kindle into an app dashboard: widgets, notifications and a sleep page that wakes only to refresh. Try the live demo.">
+<meta property="og:url" content="https://tinta.hfps.dev/">
+<meta property="og:image" content="https://tinta.hfps.dev/img/social-preview.png">
+<meta property="og:image:alt" content="Tinta on a Kindle: a home screen of widgets on e-ink">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tinta, a dashboard for e-ink Kindles">
+<meta name="twitter:description" content="A KOReader plugin that turns an e-ink Kindle into an app dashboard. Try the live demo in your browser.">
+<meta name="twitter:image" content="https://tinta.hfps.dev/img/social-preview.png">
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="icon" href="img/favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans:wght@400;700&display=swap">
+<script>
+/* Apply the saved theme before first paint (no flash). Storage may be blocked: fall back to System. */
+(function () {
+  try {
+    var t = localStorage.getItem("tinta-theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
 <style>
-/* Layout: the simulated Kindle at real size (600×800 px, scaled to fit) on the left; controls and notes on the right. */
+/* Page chrome: the hfps identity (olive OKLCH tokens, Inter, 12 px radius, eyebrow labels). Light and dark follow the OS;
+   data-theme="light|dark" on <html> overrides it. The Kindle screen below keeps its own colours (e-ink is e-ink). */
 :root {
-  --bg: #e6e9ed;          /* page background */
-  --panel: #ffffff;       /* side panel */
-  --fg: #1c232b;
-  --muted: #5a6572;
-  --line: #cdd4dc;
-  --accent: #2e5c88;      /* page controls (never on the Kindle screen) */
-  --bezel: #25272b;       /* device bezel */
+  color-scheme: light dark;
+  --bg: light-dark(oklch(0.966 0.005 106.5), oklch(0.153 0.006 107.1));
+  --card: light-dark(oklch(1 0 0), oklch(0.228 0.013 107.4));
+  --fg: light-dark(oklch(0.153 0.006 107.1), oklch(0.988 0.003 106.5));
+  --muted-fg: light-dark(oklch(0.5 0.031 107.3), oklch(0.77 0.021 106.9));
+  --muted: light-dark(oklch(0.94 0.007 106.5), oklch(0.286 0.016 107.4));
+  --border: light-dark(oklch(0.88 0.01 106.5), oklch(1 0 0 / 14%));
+  --accent: light-dark(oklch(0.5 0.09 135), oklch(0.72 0.09 135));
+  --accent-fg: light-dark(oklch(0.988 0.003 106.5), oklch(0.153 0.006 107.1));
+  --accent-soft: light-dark(oklch(0.93 0.045 135), oklch(0.29 0.05 135));
+  --warn: light-dark(oklch(0.5 0.12 55), oklch(0.828 0.15 84));
+  --warn-soft: light-dark(oklch(0.95 0.05 85), oklch(0.29 0.05 80));
+  --ring: light-dark(oklch(0.5 0.09 135), oklch(0.78 0.1 135));
+  --shadow: 0 1px 2px light-dark(oklch(0.2 0.01 107 / 0.05), oklch(0 0 0 / 0.3)), 0 12px 32px light-dark(oklch(0.2 0.01 107 / 0.07), oklch(0 0 0 / 0.35));
+  --dot: light-dark(oklch(0.85 0.012 106.5), oklch(1 0 0 / 9%));
+  --radius: 0.75rem;
+  --radius-xl: 1.05rem;
+  --gut: 16px;
+  --bezel: #25272b;       /* device bezel (both themes) */
   --paper: #ecebe6;       /* e-ink: the white of the paper */
   --ink: #141414;         /* e-ink: black */
-  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-ui: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --font-kindle: "Noto Sans", "Helvetica Neue", Arial, sans-serif;  /* KOReader's cfont is Noto Sans */
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #12161b; --panel: #1b2128; --fg: #e5e9ee; --muted: #9aa5b2; --line: #2d3742; --accent: #8db2d8;
-    --bezel: #08090a; color-scheme: dark;
-  }
-}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 * { box-sizing: border-box; }
-html, body { margin: 0; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+html.is-focus { overflow: hidden; }
 body {
-  background: var(--bg); color: var(--fg); font: 15px/1.5 var(--font-ui);
-  padding: 24px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px));
+  font: 400 16px/1.55 var(--font-ui); -webkit-font-smoothing: antialiased; overflow-x: clip;
+  padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
 }
-.wrap { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 860px) minmax(300px, 1fr); gap: 28px; align-items: start; }
-@media (max-width: 980px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
-header.page { max-width: 1280px; margin: 0 auto 20px; }
-header.page h1 { font-size: 24px; margin: 0 0 4px; text-wrap: balance; }
-header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
+img { max-width: 100%; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+button { font: inherit; color: inherit; }
+button:not(:disabled) { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.skip { position: absolute; left: 12px; top: -64px; z-index: 300; background: var(--card); color: var(--fg); border: 1px solid var(--border); padding: 10px 16px; border-radius: var(--radius); font-weight: 600; }
+.skip:focus { top: 12px; }
+.ic { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 16; stroke-linecap: round; stroke-linejoin: round; }
+.wrap { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 var(--gut); }
+code, kbd { font: 500 0.8125rem/1.5 var(--font-mono); background: var(--muted); border-radius: 6px; padding: 1px 6px; overflow-wrap: anywhere; word-break: break-word; }
+.eyebrow { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 0.75rem; line-height: 1rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-fg); }
+.eyebrow::after { content: ""; height: 1px; width: 56px; background: var(--border); }
+h2.eyebrow { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.08em; line-height: 1rem; }
+h1, h2, h3 { margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
+h2 { font-size: clamp(1.5rem, 1.1rem + 1.8vw, 2.125rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+h3 { font-size: 1.0625rem; font-weight: 600; line-height: 1.3; }
+.deck { margin: 0; font-size: 1.125rem; font-weight: 300; color: var(--muted-fg); max-width: 60ch; line-height: 1.55; text-wrap: pretty; }
+p { margin: 0; }
 
-/* ---------------------------------------------------------------- device */
-.device-col { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; position: sticky; top: 12px; }
-.device { background: var(--bezel); border-radius: 22px; padding: 26px 22px 46px; box-shadow: 0 10px 30px rgba(0,0,0,.18); max-width: 100%; }
+/* ---------------------------------------------------------------- masthead */
+.masthead { padding-top: env(safe-area-inset-top, 0px); }
+.masthead .wrap { display: flex; align-items: center; gap: 12px; min-height: 64px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--fg); text-decoration: none; font-weight: 800; font-size: 1.125rem; letter-spacing: -0.01em; min-height: 44px; }
+.logo { position: relative; width: 32px; height: 32px; border-radius: 9px; background: var(--accent-soft); overflow: hidden; flex: none; }
+.logo img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.logo.fallback::after { content: "T"; position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; color: var(--accent); }
+.mast-links { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.mast-links .link { display: none; }
+.theme { display: inline-flex; padding: 2px; background: var(--card); border: 1px solid var(--border); border-radius: 999px; }
+.theme button { display: grid; place-items: center; width: 44px; height: 40px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--muted-fg); }
+.theme button:hover { color: var(--fg); }
+.theme button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+
+/* ---------------------------------------------------------------- buttons, pills */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); color: var(--fg); font-weight: 600; font-size: 0.9375rem; line-height: 1.2; text-decoration: none; text-align: center; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn.primary:hover { filter: brightness(1.06); }
+.pill { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--border); font-size: 0.8125rem; font-weight: 500; color: var(--muted-fg); white-space: nowrap; }
+.pill.ok { background: var(--accent-soft); border-color: transparent; color: var(--accent); font-weight: 600; }
+.pill.warn { background: var(--warn-soft); border-color: transparent; color: var(--warn); font-weight: 600; }
+
+/* ---------------------------------------------------------------- hero */
+.hero { padding: 20px 0 8px; display: flex; flex-direction: column; gap: 16px; }
+.hero h1 { font-size: clamp(2.25rem, 1.4rem + 4.4vw, 3.75rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.04; max-width: 18ch; }
+.hero h1 span { color: var(--accent); }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.actions .primary { grid-column: 1 / -1; min-height: 52px; font-size: 1rem; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+/* ---------------------------------------------------------------- demo: device + controls */
+.demo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; padding: 20px 0 8px; }
+.demo > * { min-width: 0; }
+.stage { margin: 0 calc(var(--gut) * -1); padding: 16px 6px 14px; display: flex; flex-direction: column; gap: 14px; background-color: var(--card); background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 18px 18px; border-block: 1px solid var(--border); }
+.devarea { width: 100%; min-width: 0; display: flex; justify-content: center; }
+.device { background: var(--bezel); border-radius: calc(22px * var(--k, 1)); padding: calc(26px * var(--k, 1)) calc(22px * var(--k, 1)) calc(46px * var(--k, 1)); box-shadow: 0 10px 30px rgba(0,0,0,.22); max-width: 100%; }
 .holder { position: relative; overflow: hidden; }
 .screen {
   position: absolute; left: 0; top: 0; transform-origin: 0 0;
   background: var(--paper); color: var(--ink); font-family: var(--font-kindle);
   display: flex; flex-direction: column; user-select: none; touch-action: none;
+  font-size: 15px; line-height: 1.5; font-weight: 400; -webkit-font-smoothing: auto; text-wrap: wrap;
 }
-.device-caption { font: 13px var(--font-mono); color: var(--muted); text-align: center; }
+.screen h3 { font-weight: 700; text-wrap: wrap; overflow-wrap: normal; }
+.below { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 0 10px; }
+.below .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.device-caption { font: 500 0.8125rem var(--font-mono); color: var(--muted-fg); text-align: center; }
+.ftools { display: none; }
 
+.controls { display: flex; flex-direction: column; gap: 28px; }
+.group { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.group > .eyebrow { margin-bottom: 0; }
+.chipgroup { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.chipgroup > h3 { font-size: 0.8125rem; font-weight: 500; color: var(--muted-fg); }
+.chips { display: flex; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: var(--gut); scrollbar-width: none; margin: 0 calc(var(--gut) * -1); padding: 2px var(--gut); }
+.chips::-webkit-scrollbar { display: none; }
+.chips.fl { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 28px); mask-image: linear-gradient(to right, transparent 0, #000 28px); }
+.chips.fr { -webkit-mask-image: linear-gradient(to left, transparent 0, #000 28px); mask-image: linear-gradient(to left, transparent 0, #000 28px); }
+.chips.fl.fr { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%); }
+.chip { flex: none; scroll-snap-align: start; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-size: 0.875rem; font-weight: 500; white-space: nowrap; }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); padding: 3px; gap: 3px; }
+.seg button { min-height: 44px; padding: 0 6px; border: 0; border-radius: calc(var(--radius) - 3px); background: transparent; font-size: 0.875rem; font-weight: 500; min-width: 0; }
+.seg button:hover { background: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.ctl { display: flex; flex-direction: column; gap: 6px; }
+.ctl > .lbl { font-size: 0.875rem; font-weight: 500; }
+.howto { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.howto li { padding-left: 22px; position: relative; color: var(--fg); font-size: 0.9375rem; }
+.howto li::before { content: ""; position: absolute; left: 2px; top: 0.6em; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.params { margin: 0; display: grid; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); overflow: hidden; }
+.params div { display: grid; grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr); gap: 10px; padding: 10px 12px; border-top: 1px solid var(--border); font-size: 0.875rem; }
+.params div:first-child { border-top: 0; }
+.params dt { margin: 0; }
+.params dd { margin: 0; color: var(--muted-fg); overflow-wrap: anywhere; }
+details.more > summary { min-height: 44px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 0.9375rem; list-style: none; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::before { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; margin-right: 4px; }
+details.more[open] > summary::before { transform: rotate(45deg); }
+details.more[open] > summary { margin-bottom: 8px; }
+
+/* ---------------------------------------------------------------- sections */
+.section { padding: 56px 0 8px; display: flex; flex-direction: column; gap: 20px; }
+.section > header { display: flex; flex-direction: column; gap: 12px; }
+.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 20px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.card .ico { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; background: var(--accent-soft); color: var(--accent); margin-bottom: 4px; }
+.card .ico .ic { width: 22px; height: 22px; }
+.card p { color: var(--muted-fg); font-size: 0.9375rem; }
+.devs { display: grid; gap: 0; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; margin: 0; padding: 0; list-style: none; }
+.devs li { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px 20px; border-top: 1px solid var(--border); }
+.devs li:first-child { border-top: 0; }
+.devs b { font-weight: 600; }
+.devs span.d { color: var(--muted-fg); font-size: 0.9375rem; }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 12px; }
+.steps li { counter-increment: s; position: relative; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 16px 16px 16px 60px; min-width: 0; overflow-wrap: anywhere; }
+.steps li::before { content: counter(s); position: absolute; left: 16px; top: 16px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 0.875rem; }
+.gallery { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x proximity; margin: 0 calc(var(--gut) * -1); padding: 4px var(--gut) 12px; scroll-padding-inline: var(--gut); overscroll-behavior-x: contain; }
+.gallery figure { margin: 0; flex: none; scroll-snap-align: start; display: flex; flex-direction: column; gap: 8px; }
+.gallery figure.p { width: 200px; }
+.gallery figure.l { width: 266px; }
+.gallery img { display: block; width: 100%; height: auto; border-radius: 10px; border: 6px solid var(--bezel); background: var(--paper); }
+.gallery figcaption { font-size: 0.8125rem; color: var(--muted-fg); }
+footer.site { margin-top: 56px; border-top: 1px solid var(--border); padding: 28px 0 calc(40px + env(safe-area-inset-bottom, 0px)); }
+footer.site .wrap { display: flex; flex-direction: column; gap: 14px; font-size: 0.875rem; color: var(--muted-fg); }
+footer.site nav { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+footer.site nav a { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* ---------------------------------------------------------------- wide screens: device left, controls right */
+@media (min-width: 640px) {
+  :root { --gut: 24px; }
+  .actions { display: flex; flex-wrap: wrap; }
+  .actions .primary { min-height: 48px; }
+  .actions .btn { min-width: 150px; }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .devs li { flex-direction: row; align-items: center; gap: 16px; }
+  .devs li > :first-child { flex: 0 0 280px; }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stage { margin: 0; padding: 20px 16px 16px; border: 1px solid var(--border); border-radius: calc(var(--radius-xl) + 6px); box-shadow: var(--shadow); }
+  .mast-links .link { display: inline-flex; }
+  .masthead .wrap { min-height: 72px; }
+}
+@media (min-width: 980px) {
+  :root { --gut: 32px; }
+  .hero { padding-top: 40px; gap: 20px; }
+  .demo { grid-template-columns: minmax(0, 700px) minmax(320px, 1fr); gap: 40px; align-items: start; padding-top: 28px; }
+  .controls { background: var(--card); border: 1px solid var(--border); border-radius: calc(var(--radius-xl) + 6px); padding: 24px; }
+  .chips { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; -webkit-mask-image: none !important; mask-image: none !important; }
+  .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .section { padding-top: 80px; }
+  .gallery { margin: 0; padding-inline: 0; }
+}
+/* the stage can stick only where it sits beside the controls and is shorter than the window: it covers nothing */
+@media (min-width: 980px) and (min-height: 960px) {
+  .demo { align-items: stretch; }
+  .stage:not(.focus) { position: sticky; top: 16px; align-self: start; }
+  .controls { align-self: start; }
+}
+
+/* ---------------------------------------------------------------- focus mode (full screen) */
+.stage.focus {
+  position: fixed; inset: 0; z-index: 200; margin: 0; border: 0; border-radius: 0; box-shadow: none; gap: 0;
+  padding: max(10px, env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-right, 0px)) max(10px, env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
+  background: oklch(0.153 0.006 107.1); background-image: none; color: oklch(0.988 0.003 106.5);
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; overscroll-behavior: contain;
+}
+.stage.focus .devarea { position: relative; min-height: 0; display: block; }
+.stage.focus .device { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: none; }
+.stage.focus .below { display: none; }
+.stage.focus .ftools { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 0 0; }
+.ftools button { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border-radius: 50%; border: 1px solid oklch(1 0 0 / 16%); background: oklch(0.228 0.013 107.4); color: oklch(0.988 0.003 106.5); flex: none; }
+.ftools button:hover { background: oklch(0.286 0.016 107.4); }
+.ftools button:disabled { opacity: .4; }
+.ftools button:focus-visible { outline-color: oklch(0.78 0.1 135); }
+.ftools .flabel { min-width: 0; flex: 0 1 180px; text-align: center; font-size: 0.875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: oklch(0.8 0.02 107); }
+@media (orientation: landscape) and (max-width: 1100px), (orientation: landscape) and (max-height: 700px) {
+  .stage.focus { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr); }
+  .stage.focus .ftools { flex-direction: column; padding: 0 0 0 8px; }
+  .stage.focus .ftools .flabel { display: none; }
+}
+
+/* ---------------------------------------------------------------- the Kindle screen (spec, pixel-identical) */
 /* Everything inside the screen is in real KT3 px (167 ppi): text >= 20, touch targets >= 64 tall. Black and white only. */
 .sb { height: 48px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-bottom: 2px solid var(--ink); }
 .sb .clock { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
@@ -190,39 +397,6 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 .pick .empty-row { min-height: 64px; display: flex; align-items: center; padding: 0 12px; font-size: 22px; }
 .toast { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); font-size: 22px; font-weight: 700; padding: 12px 18px; border-radius: 4px; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
 .flash { position: absolute; inset: 0; background: var(--ink); pointer-events: none; }
-
-/* ---------------------------------------------------------------- panel */
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 22px; min-width: 0; }
-.panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
-.panel section { min-width: 0; }
-.ctl { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 10px; }
-.ctl > .lbl { min-width: 110px; color: var(--muted); }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
-.seg button { all: unset; padding: 5px 12px; cursor: pointer; font: 14px var(--font-ui); color: var(--fg); }
-.seg button + button { border-left: 1px solid var(--line); }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
-.seg button:focus-visible, .gbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-input[type="range"] { accent-color: var(--accent); width: 170px; max-width: 100%; }
-input[type="checkbox"] { accent-color: var(--accent); }
-.gbtn { all: unset; display: block; box-sizing: border-box; width: 100%; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; margin-bottom: 6px; }
-.gbtn:hover { border-color: var(--accent); }
-.gbtn[disabled] { opacity: .45; cursor: default; }
-.gbtn kbd { font: 12px var(--font-mono); color: var(--muted); float: right; margin-left: 8px; }
-.gbtn .src { font: 12px var(--font-mono); color: var(--muted); display: block; }
-.log { font: 13px/1.6 var(--font-mono); margin: 0; padding: 0; list-style: none; color: var(--fg); }
-.log li { border-bottom: 1px dashed var(--line); padding: 3px 0; overflow-wrap: anywhere; }
-.log:empty::before { content: "Nothing yet."; color: var(--muted); }
-.panel ul.plain { margin: 0; padding-left: 18px; }
-.panel ul.plain li { margin-bottom: 6px; }
-.panel p { margin: 0 0 8px; }
-.muted { color: var(--muted); }
-@media (prefers-reduced-motion: reduce) { .flash { display: none; } }
-/* capture mode (?shot=1): only the screen, in real px, no bezel or panel */
-body.shot { padding: 0; background: var(--paper); }
-body.shot header.page, body.shot .panel, body.shot .device-caption { display: none; }
-body.shot .wrap { display: block; max-width: none; margin: 0; }
-body.shot .device-col { position: static; display: block; }
-body.shot .device { padding: 0; border-radius: 0; background: none; box-shadow: none; }
 .sec { font-size: 20px; font-weight: 700; padding: 6px 4px 0; letter-spacing: .04em; }
 .notelines { font-size: 20px; padding: 0 4px; line-height: 1.35; }
 .face { display: block; }
@@ -236,48 +410,213 @@ body.shot .device { padding: 0; border-radius: 0; background: none; box-shadow: 
 .bigtitle { font-size: 26px; font-weight: 700; text-align: center; }
 .notefield { border: 2px solid var(--ink); border-radius: 4px; padding: 10px; font-size: 24px; flex: 1; min-height: 0; overflow: hidden; line-height: 1.4; }
 .wnote { font-size: 20px; white-space: pre-line; overflow: hidden; line-height: 1.25; }
+.flash { position: absolute; inset: 0; background: var(--ink); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .flash { display: none; } details.more > summary::before { transition: none; } .gallery, .chips { scroll-behavior: auto; } }
+/* capture mode (?shot=1): only the screen, in real px, no bezel or page */
+html:has(body.shot), body.shot { background: var(--paper); }
+body.shot { padding: 0; overflow: visible; }
+body.shot .chrome { display: none !important; }
+body.shot .wrap { max-width: none; padding: 0; margin: 0; }
+body.shot .demo { display: block; padding: 0; }
+body.shot .stage { display: block; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: none; position: static; }
+body.shot .devarea { display: block; }
+body.shot .device { padding: 0; border-radius: 0; background: none; box-shadow: none; }
 </style>
 </head>
 <body>
-<header class="page">
-  <h1>Tinta: dashboard prototype</h1>
-  <p>A KOReader plugin that turns the Kindle into an app dashboard. The screen is shown at the real size of the Kindle KT3 (600 × 800 px, black and white), with the apps the public Tinta ships: Notifications, System, Battery, Clock, Sleep, Timer, Note and Countdown, plus three sample apps for developers (marked "sample"). All data is made up.</p>
+<a class="skip chrome" href="#main">Skip to the demo</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-full" viewBox="0 0 256 256"><path d="M168 48h40v40M88 208H48v-40M208 168v40h-40M48 88V48h40M208 48l-56 56M48 208l56-56"/></symbol>
+  <symbol id="i-close" viewBox="0 0 256 256"><path d="M200 56 56 200M200 200 56 56"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 256 256"><path d="M208 128a80 80 0 1 1-23.4-56.6L208 94M208 40v54h-54"/></symbol>
+  <symbol id="i-left" viewBox="0 0 256 256"><path d="m160 48-80 80 80 80"/></symbol>
+  <symbol id="i-right" viewBox="0 0 256 256"><path d="m96 48 80 80-80 80"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 256 256"><path d="M72 184 184 72M88 72h96v96"/></symbol>
+  <symbol id="i-down" viewBox="0 0 256 256"><path d="M128 144V40M80 96l48 48 48-48M40 168v32a8 8 0 0 0 8 8h160a8 8 0 0 0 8-8v-32"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 256 256"><rect x="32" y="48" width="192" height="128" rx="16"/><path d="M96 216h64M128 176v40"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 256 256"><circle cx="128" cy="128" r="44"/><path d="M128 28v24M128 204v24M57 57l17 17M182 182l17 17M28 128h24M204 128h24M57 199l17-17M182 74l17-17"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 256 256"><path d="M216 128.2A88 88 0 1 1 127.8 40a72 72 0 0 0 88.2 88.2z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 256 256"><rect x="48" y="48" width="64" height="64" rx="10"/><rect x="144" y="48" width="64" height="64" rx="10"/><rect x="48" y="144" width="64" height="64" rx="10"/><rect x="144" y="144" width="64" height="64" rx="10"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 256 256"><path d="M56 104a72 72 0 0 1 144 0c0 35 7 52 16 64H40c9-12 16-29 16-64zM104 208a24 24 0 0 0 48 0"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 256 256"><path d="M24 108a150 150 0 0 1 208 0M56 144a104 104 0 0 1 144 0M88 178a58 58 0 0 1 80 0M128 212h.01"/></symbol>
+  <symbol id="i-sleep" viewBox="0 0 256 256"><path d="M216 128.2A88 88 0 1 1 127.8 40a72 72 0 0 0 88.2 88.2zM176 32v32M160 48h32"/></symbol>
+  <symbol id="i-code" viewBox="0 0 256 256"><path d="M64 88 24 128l40 40M192 88l40 40-40 40M152 48l-48 160"/></symbol>
+  <symbol id="i-battery" viewBox="0 0 256 256"><rect x="24" y="80" width="192" height="96" rx="16"/><path d="M240 112v32M64 112v32"/></symbol>
+</svg>
+
+<header class="masthead chrome">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="Tinta, home">
+      <span class="logo"><img src="img/icon.svg" alt="" width="32" height="32" onerror="this.parentNode.className='logo fallback';this.hidden=true"></span>
+      <span>Tinta</span>
+    </a>
+    <div class="mast-links">
+      <a class="btn link" href="https://github.com/henriquefps/tinta-koreader">GitHub <svg class="ic" aria-hidden="true"><use href="#i-ext"/></svg></a>
+      <div class="theme" id="theme" role="group" aria-label="Theme">
+        <button type="button" data-theme-value="system" aria-pressed="true" aria-label="System theme" title="System"><svg class="ic" aria-hidden="true"><use href="#i-monitor"/></svg></button>
+        <button type="button" data-theme-value="light" aria-pressed="false" aria-label="Light theme" title="Light"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></button>
+        <button type="button" data-theme-value="dark" aria-pressed="false" aria-label="Dark theme" title="Dark"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></button>
+      </div>
+    </div>
+  </div>
 </header>
 
-<div class="wrap">
-  <div class="device-col">
-    <div class="device"><div class="holder" id="holder"><div class="screen" id="screen"></div></div></div>
-    <div class="device-caption" id="caption">Kindle KT3 · 600 × 800 · portrait</div>
+<main id="main" class="wrap">
+  <section class="hero chrome" aria-labelledby="title">
+    <p class="eyebrow">KOReader plugin</p>
+    <h1 id="title">A dashboard for your <span>e-ink</span> Kindle</h1>
+    <p class="deck">Tinta turns an e-ink reader into an app dashboard: a home of widgets, a notification centre, and a sleep page that stays on screen and wakes only to refresh. Black and white, no animations. The demo below is the real layout, with made-up data.</p>
+    <div class="actions">
+      <button type="button" class="btn primary" id="btn-hero-full"><svg class="ic" aria-hidden="true"><use href="#i-full"/></svg>Full screen</button>
+      <a class="btn" href="https://github.com/henriquefps/tinta-koreader">GitHub <svg class="ic" aria-hidden="true"><use href="#i-ext"/></svg></a>
+      <a class="btn" href="#install"><svg class="ic" aria-hidden="true"><use href="#i-down"/></svg>Install</a>
+    </div>
+    <div class="facts"><span class="pill ok">Tested on Kindle Basic 2</span><span class="pill">Open source, AGPL-3.0</span></div>
+  </section>
+
+  <div class="demo">
+    <div class="stage" id="stage">
+      <div class="devarea" id="devarea">
+        <div class="device" id="device"><div class="holder" id="holder"><div class="screen" id="screen" aria-label="Tinta on a simulated Kindle screen"></div></div></div>
+      </div>
+      <div class="below chrome">
+        <div class="row2">
+          <button type="button" class="btn primary" id="btn-full"><svg class="ic" aria-hidden="true"><use href="#i-full"/></svg>Full screen</button>
+          <button type="button" class="btn" id="btn-rotate"><svg class="ic" aria-hidden="true"><use href="#i-rotate"/></svg>Rotate</button>
+        </div>
+        <div class="device-caption" id="caption">Kindle KT3 · 600 × 800 · portrait</div>
+      </div>
+      <div class="ftools chrome" id="ftools" role="toolbar" aria-label="Full screen controls">
+        <button type="button" id="f-close" aria-label="Close full screen" title="Close (Esc)"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+        <button type="button" id="f-prev" aria-label="Previous screen" title="Previous screen"><svg class="ic" aria-hidden="true"><use href="#i-left"/></svg></button>
+        <span class="flabel" id="f-label" aria-live="polite"></span>
+        <button type="button" id="f-next" aria-label="Next screen" title="Next screen"><svg class="ic" aria-hidden="true"><use href="#i-right"/></svg></button>
+        <button type="button" id="f-rotate" aria-label="Rotate the device" title="Rotate"><svg class="ic" aria-hidden="true"><use href="#i-rotate"/></svg></button>
+        <button type="button" id="f-expand" aria-label="Use the whole display" title="Whole display" hidden><svg class="ic" aria-hidden="true"><use href="#i-full"/></svg></button>
+      </div>
+    </div>
+
+    <div class="controls chrome">
+      <section class="group" aria-labelledby="h-screens">
+        <h2 class="eyebrow" id="h-screens">Screens</h2>
+        <div id="seg-view" class="chipgroups" style="display:flex;flex-direction:column;gap:14px;min-width:0">
+          <div class="chipgroup"><h3>Dashboard</h3><div class="chips"><button type="button" class="chip" data-v="home">Home</button><button type="button" class="chip" data-v="central">Center</button><button type="button" class="chip" data-v="apps">Apps</button><button type="button" class="chip" data-v="sleep">Sleep (page)</button><button type="button" class="chip" data-v="sistema">System</button><button type="button" class="chip" data-v="sleepcfg">System › Sleep</button><button type="button" class="chip" data-v="organizar">Organize</button></div></div>
+          <div class="chipgroup"><h3>Bundled apps</h3><div class="chips"><button type="button" class="chip" data-v="relogio">Clock</button><button type="button" class="chip" data-v="timer">Timer</button><button type="button" class="chip" data-v="nota">Note</button><button type="button" class="chip" data-v="contagem">Countdown</button><button type="button" class="chip" data-v="bateria">Battery</button></div></div>
+          <div class="chipgroup"><h3>Sample apps for developers</h3><div class="chips"><button type="button" class="chip" data-v="yourapps">Your apps</button><button type="button" class="chip" data-v="clima">Weather</button><button type="button" class="chip" data-v="servidor">Home server</button><button type="button" class="chip" data-v="modelo">Counter</button></div></div>
+        </div>
+      </section>
+      <section class="group" aria-labelledby="h-sim">
+        <h2 class="eyebrow" id="h-sim">Simulate the device</h2>
+        <div class="ctl"><span class="lbl" id="l-orient">Orientation</span>
+          <div class="seg" id="seg-orient" role="group" aria-labelledby="l-orient"><button type="button" data-v="portrait">Portrait</button><button type="button" data-v="landscape">Landscape</button></div>
+        </div>
+        <div class="ctl"><span class="lbl" id="l-style">Clock style</span>
+          <div class="seg" id="seg-style" role="group" aria-labelledby="l-style"><button type="button" data-v="digital">Digital</button><button type="button" data-v="data">With date</button><button type="button" data-v="analogico">Analog</button><button type="button" data-v="minimo">Minimal</button></div>
+        </div>
+      </section>
+      <section class="group" aria-labelledby="h-how">
+        <h2 class="eyebrow" id="h-how">How to use</h2>
+        <ul class="howto">
+          <li>Tap the widgets, the bell, the clock or the bottom bar, as on the device.</li>
+          <li><b>Menu › Apps</b> opens the launcher; <b>Menu › Organize home</b> opens the organizer.</li>
+          <li>Rows with several options (System › Sleep) open a choice popup. Tap outside it or press <kbd>Esc</kbd> to cancel.</li>
+          <li><b>Full screen</b> shows only the device, as large as your display allows. <kbd>Esc</kbd> leaves it; <kbd>←</kbd> <kbd>→</kbd> change screen.</li>
+          <li>The time is fixed (Friday, October 16, 14:32) so every screenshot comes out the same.</li>
+        </ul>
+        <details class="more">
+          <summary>URL parameters</summary>
+          <dl class="params">
+            <div><dt><code>view</code></dt><dd><code>home</code> <code>yourapps</code> <code>central</code> <code>apps</code> <code>sleep</code> <code>sistema</code> <code>sleepcfg</code> <code>organizar</code> <code>relogio</code> <code>timer</code> <code>nota</code> <code>contagem</code> <code>bateria</code> <code>clima</code> <code>servidor</code> <code>modelo</code></dd></div>
+            <div><dt><code>land=1</code></dt><dd>Landscape.</dd></div>
+            <div><dt><code>style</code></dt><dd>Clock style, e.g. <code>style=analogico</code>.</dd></div>
+            <div><dt><code>samples=1</code></dt><dd>List the sample apps in Apps.</dd></div>
+            <div><dt><code>popup</code></dt><dd><code>idle</code> <code>after</code> <code>wake</code> <code>titles</code> with <code>view=sleepcfg</code>; <code>hidden</code> with <code>view=organizar</code> (and <code>org=sleep</code> for the Sleep tab).</dd></div>
+            <div><dt><code>menu=1</code></dt><dd>Open the menu.</dd></div>
+            <div><dt><code>focus=1</code></dt><dd>Open straight into full screen.</dd></div>
+            <div><dt><code>shot=1</code></dt><dd>Only the screen, in real pixels, for the screenshots.</dd></div>
+          </dl>
+        </details>
+      </section>
+    </div>
   </div>
 
-  <aside class="panel">
-    <section>
-      <h2>Screens</h2>
-      <div class="seg" id="seg-view">
-        <button type="button" data-v="home">Home</button><button type="button" data-v="central">Center</button><button type="button" data-v="apps">Apps</button><button type="button" data-v="sleep">Sleep (page)</button><button type="button" data-v="sistema">System</button><button type="button" data-v="sleepcfg">System › Sleep</button><button type="button" data-v="organizar">Organize</button><button type="button" data-v="relogio">Clock</button><button type="button" data-v="timer">Timer</button><button type="button" data-v="nota">Note</button><button type="button" data-v="contagem">Countdown</button><button type="button" data-v="bateria">Battery</button><button type="button" data-v="yourapps">Your apps (samples)</button><button type="button" data-v="clima">Weather</button><button type="button" data-v="servidor">Home server</button><button type="button" data-v="modelo">Counter</button>
-      </div>
-    </section>
-    <section>
-      <h2>Simulate the device</h2>
-      <div class="ctl"><span class="lbl">Orientation</span>
-        <div class="seg" id="seg-orient"><button type="button" data-v="portrait">Portrait</button><button type="button" data-v="landscape">Landscape</button></div>
-      </div>
-      <div class="ctl"><span class="lbl">Clock style</span>
-        <div class="seg" id="seg-style"><button type="button" data-v="digital">Digital</button><button type="button" data-v="data">With date</button><button type="button" data-v="analogico">Analog</button><button type="button" data-v="minimo">Minimal</button></div>
-      </div>
-    </section>
-    <section>
-      <h2>How to use</h2>
-      <ul class="plain">
-        <li>Tap the widgets, the bell, the clock or the bottom bar, as on the device.</li>
-        <li><b>Menu › Apps</b> opens the launcher; <b>Menu › Organize home</b> opens the organizer.</li>
-        <li>URL parameters: <code>?view=home|yourapps|central|apps|sleep|sistema|sleepcfg|organizar|relogio|timer|nota|contagem|bateria|clima|servidor|modelo</code>, <code>&amp;land=1</code>, <code>&amp;style=analogico</code>, <code>&amp;samples=1</code> (list the sample apps in Apps), <code>&amp;popup=idle|after|wake|titles</code> (with <code>view=sleepcfg</code>: opens that choice popup), <code>&amp;popup=hidden</code> (with <code>view=organizar</code>, and <code>&amp;org=sleep</code> for the Sleep tab: the Hidden (N) popup) and <code>&amp;shot=1</code> (only the screen, in real px, for the screenshots).</li>
-        <li>Rows with several options (System › Sleep) open a choice popup; tap outside it, the bottom bar or press Esc to cancel.</li>
-        <li>The time is fixed (Friday, October 16, 14:32) so the screenshots are reproducible.</li>
-      </ul>
-    </section>
-  </aside>
-</div>
+  <section class="section chrome" id="what" aria-labelledby="h-what">
+    <header>
+      <p class="eyebrow">What Tinta is</p>
+      <h2 id="h-what">Widgets, notifications and a sleep page</h2>
+      <p class="deck">A platform on top of KOReader, which already handles the screen, touch, Wi-Fi and suspend. It is not an operating system.</p>
+    </header>
+    <div class="cards">
+      <article class="card"><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg></span><h3>A home of widgets</h3><p>Clock, battery, notes, timers and countdowns in several sizes, from 1×1 to 4×4. Hold a widget to reorganize.</p></article>
+      <article class="card"><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg></span><h3>Notifications</h3><p>A banner, a notification centre and a priority per app. The same message fires once, not on every refresh.</p></article>
+      <article class="card"><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-wifi"/></svg></span><h3>One Wi-Fi connection</h3><p>Every app that is due refreshes over a single connection: Wi-Fi turns on, the apps run, Wi-Fi turns off.</p></article>
+      <article class="card"><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-sleep"/></svg></span><h3>A sleep page that wakes to refresh</h3><p>The page stays on screen while the Kindle sleeps and wakes on its clock only to refresh. Measured on the KT3: about 4 to 5 mA suspended.</p></article>
+      <article class="card"><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-code"/></svg></span><h3>Write your own apps</h3><p>An app is a small Lua folder. Tinta provides scheduling, settings screens, storage, network and widgets. See the <a href="https://github.com/henriquefps/tinta-koreader/blob/main/docs/sdk.md">SDK guide</a>.</p></article>
+      <article class="card"><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-battery"/></svg></span><h3>Battery estimates</h3><p>A battery log with two estimates of the time left: at your recent real pace, sleep included, and awake with Wi-Fi.</p></article>
+    </div>
+  </section>
+
+  <section class="section chrome" id="screens" aria-labelledby="h-gallery">
+    <header>
+      <p class="eyebrow">Screenshots</p>
+      <h2 id="h-gallery">Straight from the prototype</h2>
+      <p class="deck">Every image is this page rendered at the real 600×800 pixels of the Kindle KT3.</p>
+    </header>
+    <div class="gallery" tabindex="0" role="region" aria-label="Screenshots, scroll sideways">
+      <figure class="p"><img loading="lazy" decoding="async" width="600" height="800" src="screenshots/inicio.png" alt="Home: a grid of widgets"><figcaption>Home</figcaption></figure>
+      <figure class="p"><img loading="lazy" decoding="async" width="600" height="800" src="screenshots/central.png" alt="Notification centre"><figcaption>Notification centre</figcaption></figure>
+      <figure class="p"><img loading="lazy" decoding="async" width="600" height="800" src="screenshots/repouso.png" alt="Sleep page"><figcaption>Sleep page</figcaption></figure>
+      <figure class="p"><img loading="lazy" decoding="async" width="600" height="800" src="screenshots/bateria.png" alt="Battery screen with two estimates"><figcaption>Battery</figcaption></figure>
+      <figure class="p"><img loading="lazy" decoding="async" width="600" height="800" src="screenshots/apps.png" alt="Apps launcher"><figcaption>Apps</figcaption></figure>
+      <figure class="p"><img loading="lazy" decoding="async" width="600" height="800" src="screenshots/organizador.png" alt="Home organizer"><figcaption>Organizer</figcaption></figure>
+      <figure class="p"><img loading="lazy" decoding="async" width="600" height="800" src="screenshots/timer.png" alt="Timer app"><figcaption>Timer</figcaption></figure>
+      <figure class="p"><img loading="lazy" decoding="async" width="600" height="800" src="screenshots/your-apps.png" alt="Home with three sample apps"><figcaption>Sample apps</figcaption></figure>
+      <figure class="l"><img loading="lazy" decoding="async" width="800" height="600" src="screenshots/inicio-paisagem.png" alt="Home in landscape"><figcaption>Landscape</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="section chrome" id="devices" aria-labelledby="h-devices">
+    <header>
+      <p class="eyebrow">Compatibility</p>
+      <h2 id="h-devices">Which devices work</h2>
+      <p class="deck">Tinta was built for, and tested on, one device. The rest is expected to work but nobody has checked yet.</p>
+    </header>
+    <ul class="devs">
+      <li><b>Kindle Basic 2 (KT3, 600×800)</b><span class="pill ok">Tested</span><span class="d">Complete sleep and wake on the clock.</span></li>
+      <li><b>Other Kindles with KOReader</b><span class="pill">Untested</span><span class="d">Should behave like the KT3 if the device accepts <code>rtcWakeup</code>.</span></li>
+      <li><b>Kobo with KOReader</b><span class="pill warn">Experimental</span><span class="d">Not tested on hardware. Uses KOReader's own suspend and RTC support.</span></li>
+      <li><b>Other touch devices</b><span class="pill">Untested</span><span class="d">Generic backend: no scheduled wake-up, so the sleep page does not refresh by itself.</span></li>
+    </ul>
+    <p class="deck" style="font-size:.9375rem">Apps run inside the KOReader process with full access to files, network and the device. Install only apps you trust.</p>
+  </section>
+
+  <section class="section chrome" id="install" aria-labelledby="h-install">
+    <header>
+      <p class="eyebrow">Install</p>
+      <h2 id="h-install">Four steps</h2>
+    </header>
+    <ol class="steps">
+      <li>Install KOReader on the device and check that it opens. A Kindle needs a jailbreak first; see the <a href="https://github.com/koreader/koreader/wiki">KOReader wiki</a>.</li>
+      <li>Download <code>tinta-&lt;version&gt;.zip</code> from <a href="https://github.com/henriquefps/tinta-koreader/releases">Releases</a> and unzip it.</li>
+      <li>Copy the <code>tinta.koplugin</code> folder into <code>koreader/plugins/</code> on the device, by USB or SSH.</li>
+      <li>Restart KOReader. Tinta appears in KOReader's main menu.</li>
+    </ol>
+    <div><a class="btn primary" href="https://github.com/henriquefps/tinta-koreader/releases"><svg class="ic" aria-hidden="true"><use href="#i-down"/></svg>Get the latest release</a></div>
+  </section>
+</main>
+
+<footer class="site chrome">
+  <div class="wrap">
+    <nav aria-label="Project links">
+      <a href="https://github.com/henriquefps/tinta-koreader">GitHub</a>
+      <a href="https://github.com/henriquefps/tinta-koreader/blob/main/docs/sdk.md">SDK guide</a>
+      <a href="https://github.com/henriquefps/tinta-koreader/issues">Report a problem</a>
+      <a href="https://koreader.rocks">KOReader</a>
+    </nav>
+    <p>Tinta is free software under the AGPL-3.0. This page is a prototype of its interface; all data in it is made up.</p>
+  </div>
+</footer>
 
 <script>
 "use strict";
@@ -291,7 +630,7 @@ const S = {
   sleep: P.get("view") === "sleep", menu: P.get("menu") === "1",
   samples: P.get("samples") === "1" || ["yourapps", "clima", "servidor", "modelo"].includes(P.get("view")),
   orgMode: "home", sel: "nota", sleepEvery: 1800, idleMode: "always", idleMin: 5, wake: "schedule", titles: "show", popup: null, toast: "",
-  timerSel: "pomo",
+  timerSel: "pomo", focus: false,
   layout: {
     home: [
       { id: "relogio", size: "4x2" }, { id: "bateria", size: "2x2" }, { id: "notif", size: "4x2" }, { id: "contagem", size: "2x2" },
@@ -748,8 +1087,15 @@ function render() {
   const scr = $("#screen"), holder = $("#holder");
   scr.className = "screen" + (S.landscape ? " landscape" : "");
   scr.style.width = W + "px"; scr.style.height = H + "px";
-  const avail = SHOT ? W : Math.min(W, ($(".device-col").clientWidth || W) - 44);
-  const k = SHOT ? 1 : Math.min(1, avail / W);
+  // page: the screen shrinks to the column (never above 1); focus mode: as large as the free area allows, bezel included
+  const area = $("#devarea"), BZX = 44, BZY = 72;
+  let k = 1;
+  if (!SHOT) {
+    k = S.focus ? Math.min((area.clientWidth || W) / (W + BZX), (area.clientHeight || H) / (H + BZY), 4)
+      : Math.min(1, (area.clientWidth || W) / (W + BZX));
+    k = Math.max(0.1, Math.floor(k * 1000) / 1000);
+    $("#device").style.setProperty("--k", k);
+  }
   scr.style.transform = `scale(${k})`;
   holder.style.width = W * k + "px"; holder.style.height = H * k + "px";
   const r = current().r;
@@ -758,6 +1104,7 @@ function render() {
   else content = (SCREENS[r] || homeScreen)();
   scr.innerHTML = statusBar() + `<div class="content">${content}${S.menu && !S.sleep ? menuSheet() : ""}${S.popup && !S.sleep ? popupHtml() : ""}${S.toast ? `<div class="toast">${esc(S.toast)}</div>` : ""}</div>` + (S.sleep ? "" : navBar());
   $("#caption").textContent = `Kindle KT3 · ${W} × ${H} · ${S.landscape ? "landscape" : "portrait"}`;
+  syncChrome();
   for (const [id, sel] of [["seg-orient", S.landscape ? "landscape" : "portrait"], ["seg-style", S.style], ["seg-view", S.sleep ? "sleep" : r]])
     document.querySelectorAll(`#${id} button`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === sel)));
 }
@@ -817,11 +1164,130 @@ if (SHOT) document.body.classList.add("shot");
 if (P.get("org") === "sleep") { S.orgMode = "sleep"; S.sel = "relogio"; }
 if (P.get("idle")) S.idleMode = P.get("idle");
 if (P.get("popup") && POPUPS[P.get("popup")]) S.popup = POPUPS[P.get("popup")]();
-addEventListener("keydown", e => { if (e.key === "Escape" && S.popup) closePopup(); });
+addEventListener("keydown", e => {
+  if (e.key === "Escape") { if (S.popup) closePopup(); else if (S.focus) exitFocus(); return; }
+  if (!S.focus || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.key === "ArrowLeft") { e.preventDefault(); stepView(-1); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); stepView(1); }
+  else if (e.key === "Tab") trapTab(e);
+});
 if (S.stack[0].r === "organizar") S.stack = [{ r: "home" }, { r: "sistema" }, { r: "organizar" }];
 addEventListener("resize", render);
+// ---------------------------------------------------------------- page chrome: screen picker, full screen, theme
+const viewChips = () => [...document.querySelectorAll("#seg-view .chip")];
+const viewNow = () => S.sleep ? "sleep" : current().r;
+function fadeEdges(el) {
+  el.classList.toggle("fl", el.scrollLeft > 4);
+  el.classList.toggle("fr", el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+}
+document.querySelectorAll(".chips").forEach(el => { el.addEventListener("scroll", () => fadeEdges(el), { passive: true }); fadeEdges(el); });
+// keeps the picked chip in view inside its own row (scrollIntoView would also move the page)
+function syncChrome() {
+  document.querySelectorAll(".chips").forEach(el => {
+    const on = el.querySelector('[aria-pressed="true"]');
+    if (on && el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).overflowX !== "visible") {
+      const to = Math.max(0, on.offsetLeft - (el.clientWidth - on.offsetWidth) / 2);
+      if (Math.abs(el.scrollLeft - to) > 2) el.scrollLeft = to;
+    }
+    fadeEdges(el);
+  });
+  const lab = $("#f-label"), cur = viewChips().find(b => b.dataset.v === viewNow());
+  if (lab) lab.textContent = cur ? cur.textContent : "";
+}
+function stepView(d) {
+  const chips = viewChips(), i = chips.findIndex(b => b.dataset.v === viewNow());
+  setView(chips[(i + d + chips.length) % chips.length].dataset.v);
+}
+
+const stage = $("#stage"), root = document.documentElement;
+let focusOpener = null, nativeFs = false;
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+function setFocusParam(on) {
+  try {
+    const u = new URL(location.href);
+    if (on) u.searchParams.set("focus", "1"); else u.searchParams.delete("focus");
+    history.replaceState(null, "", u);
+  } catch (e) {}
+}
+function updateExpand() {
+  const can = !!(stage.requestFullscreen || stage.webkitRequestFullscreen) && !fsEl();
+  $("#f-expand").hidden = !(S.focus && can);
+}
+function enterFocus(opener) {
+  if (S.focus) return;
+  focusOpener = opener || document.activeElement;
+  S.focus = true;
+  stage.classList.add("focus"); root.classList.add("is-focus");
+  stage.setAttribute("role", "dialog"); stage.setAttribute("aria-label", "Tinta full screen");
+  setFocusParam(true); updateExpand(); render();
+  $("#f-close").focus({ preventScroll: true });
+}
+function exitFocus() {
+  if (!S.focus) return;
+  S.focus = false;
+  if (fsEl()) { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} }
+  stage.classList.remove("focus"); root.classList.remove("is-focus");
+  stage.removeAttribute("role"); stage.removeAttribute("aria-label");
+  setFocusParam(false); render();
+  if (focusOpener && focusOpener.focus) focusOpener.focus({ preventScroll: true });
+  focusOpener = null;
+}
+// the Fullscreen API where it exists (not on iPhone Safari); the fixed overlay is the same layout either way
+function goFocus(opener) {
+  enterFocus(opener);
+  const req = stage.requestFullscreen || stage.webkitRequestFullscreen;
+  if (req) { try { const p = req.call(stage, { navigationUI: "hide" }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+}
+function onFsChange() {
+  if (!fsEl() && S.focus && nativeFs) exitFocus();   // Esc (or the browser) left real full screen
+  nativeFs = !!fsEl();
+  updateExpand(); render();
+}
+function trapTab(e) {
+  const f = [...stage.querySelectorAll("button:not([disabled]):not([hidden]), [tabindex]:not([tabindex='-1'])")].filter(el => el.offsetParent !== null);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (!stage.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+document.addEventListener("fullscreenchange", onFsChange);
+document.addEventListener("webkitfullscreenchange", onFsChange);
+$("#btn-full").addEventListener("click", e => goFocus(e.currentTarget));
+$("#btn-hero-full").addEventListener("click", e => goFocus(e.currentTarget));
+$("#f-close").addEventListener("click", exitFocus);
+$("#f-prev").addEventListener("click", () => stepView(-1));
+$("#f-next").addEventListener("click", () => stepView(1));
+const rotate = () => { S.landscape = !S.landscape; render(); };
+$("#btn-rotate").addEventListener("click", rotate);
+$("#f-rotate").addEventListener("click", rotate);
+$("#f-expand").addEventListener("click", () => {
+  const req = stage.requestFullscreen || stage.webkitRequestFullscreen;
+  if (req) { try { const p = req.call(stage, { navigationUI: "hide" }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+});
+if (window.visualViewport) visualViewport.addEventListener("resize", () => { if (S.focus) render(); });
+addEventListener("orientationchange", () => setTimeout(render, 250));
+
+// theme: System / Light / Dark, remembered per browser
+const THEMES = { light: "#f4f4f1", dark: "#0c0d0a" };
+function applyTheme(t, save) {
+  if (t === "light" || t === "dark") root.setAttribute("data-theme", t); else root.removeAttribute("data-theme");
+  document.querySelectorAll("#theme button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.themeValue === t)));
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+    if (!m.dataset.orig) m.dataset.orig = m.content;
+    m.content = THEMES[t] || m.dataset.orig;
+  });
+  if (save) { try { if (t === "system") localStorage.removeItem("tinta-theme"); else localStorage.setItem("tinta-theme", t); } catch (e) {} }
+}
+let savedTheme = "system";
+try { const t = localStorage.getItem("tinta-theme"); if (t === "light" || t === "dark") savedTheme = t; } catch (e) {}
+applyTheme(savedTheme, false);
+document.querySelectorAll("#theme button").forEach(b => b.addEventListener("click", () => applyTheme(b.dataset.themeValue, true)));
+if (P.get("focus") === "1" && !SHOT) enterFocus(null);
+
 document.fonts && document.fonts.ready.then(render);
 render();
+
 </script>
 </body>
 </html>

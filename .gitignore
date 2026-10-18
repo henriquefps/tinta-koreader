@@ -19,3 +19,6 @@ kindle-logs/
 
 # Release zips (scripts/build-release.sh)
 dist/
+
+# Static site assembled by scripts/build-site.sh
+dist-site/
