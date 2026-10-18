@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Repository social preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* hfps tokens, same values as hfps-visuals shared.css */
+  :root {
+    --bg: oklch(0.966 0.005 106.5);
+    --fg: oklch(0.153 0.006 107.1);
+    --muted-fg: oklch(0.5 0.02 107.3);
+    --border: oklch(0.85 0.012 106.5);
+    --accent: oklch(0.5 0.09 135);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: "Inter", ui-sans-serif, system-ui, sans-serif; }
+  .stage { position: relative; width: 1280px; height: 640px; }
+  .icon { position: absolute; left: 96px; top: 180px; width: 280px; height: 280px; border-radius: 64px; box-shadow: 0 20px 48px rgba(60, 70, 40, 0.14); }
+  .text { position: absolute; left: 448px; top: 158px; width: 740px; }
+  .eyebrow { display: flex; align-items: center; gap: 14px; }
+  .eyebrow .label { font-size: 15px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted-fg); }
+  .eyebrow .rule { width: 64px; height: 1px; background: var(--border); }
+  h1 { margin: 20px 0 22px; font-size: 104px; line-height: 1.04; font-weight: 800; letter-spacing: -0.035em; }
+  /* a two-line title (e.g. "Background Sync Plugin") fits at 104px; a long one-word name may need 88px */
+  .deck { margin: 0; font-size: 25px; line-height: 1.42; font-weight: 300; color: var(--muted-fg); }
+  .footer { position: absolute; left: 96px; right: 96px; top: 556px; display: flex; justify-content: space-between; font-size: 20px; font-weight: 700; }
+  .footer .repo { color: var(--muted-fg); }
+  .footer .site { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <!-- EDIT: path to the icon.svg this repo already has (docs/img/icon.svg when the page sits in docs/img/ or scripts/) -->
+  <img class="icon" src="../docs/img/icon.svg" alt="">
+  <div class="text">
+    <!-- EDIT: 2 to 5 uppercase-style words: the kind of project, with the stack -->
+    <div class="eyebrow"><span class="label">KOReader plugin</span><span class="rule"></span></div>
+    <!-- EDIT: the project name; use <br> for a two-line name -->
+    <h1>Tinta</h1>
+    <!-- EDIT: one to three lines, what it does and the one thing that sets it apart. No emoji, no em dashes. -->
+    <p class="deck">An app dashboard for e-ink readers: a home grid of widgets and notifications. A sleep page stays on screen while the device sleeps and wakes only to refresh.</p>
+  </div>
+  <!-- EDIT: repo URL on the left; hfps.dev stays on the right -->
+  <div class="footer"><span class="repo">github.com/henriquefps/tinta-koreader</span><span class="site">hfps.dev</span></div>
+</div>
+</body>
+</html>
