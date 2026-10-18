@@ -13,12 +13,15 @@ with made-up content. PNG, grayscale (16 levels), 600×800 portrait or 800×600 
 | `apps.png` | Apps launcher (Menu → Apps) |
 | `repouso.png` | Sleep page: status strip, widgets, footer |
 | `sistema-repouso.png` | System → Sleep settings |
-| `organizador.png` | Home organizer |
+| `choice-popup.png` | Choice popup of a settings row (System → Sleep → "Sleep by itself", current option inverted with a ●) |
+| `bateria.png` | Battery screen: main estimate, then the two labelled estimates (current pace, awake with Wi-Fi) |
+| `organizador.png` | Home organizer ("Hidden (0)" disabled) |
+| `organizador-ocultos.png` | Sleep organizer with the "Hidden (N)" popup open |
 | `relogio-estilos.png` | Clock style picker (analog selected) |
 | `timer.png` | Timer screen (pomodoro selected) |
 | `your-apps.png` | Home with the three sample apps, each tagged "sample": Weather (`apps/_exemplo_clima`, a web service), Home server (`apps/_exemplo_json`, your own server, made-up host `nas.lan`) and Counter (`apps/_modelo`, a local app) |
 
-(The file names of the first nine are kept from earlier versions of the README; the content is English.)
+(The file names of the older ones are kept from earlier versions of the README; the content is English.)
 
 ## Regenerate
 
@@ -29,5 +32,7 @@ The prototype takes URL parameters (`?view=…&land=1&style=…&samples=1&shot=1
 pixels) and uses a fixed clock (Friday, October 16, 14:32), so the images come out the same every time. To do it by hand: open
 `docs/tinta-prototipo.html` with the parameters of the image you want in a browser, set the viewport to 600×800 (or 800×600
 for landscape), take a screenshot, and convert to 16-level grayscale with ImageMagick if you want the same size on disk.
+Popups open from the URL for screenshots: `?view=sleepcfg&popup=idle|after|wake|titles` and `?view=organizar&org=sleep&popup=hidden`
+(`choice-popup.png`, `organizador-ocultos.png`).
 To explore the prototype interactively, open it without parameters (it loads Noto Sans from Google Fonts). The sample apps'
 screens are `?view=clima`, `?view=servidor` and `?view=modelo`.
