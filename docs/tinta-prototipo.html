@@ -123,6 +123,7 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 .batbig { display: flex; align-items: center; gap: 20px; padding: 4px; }
 .batbig .pct { font-size: 72px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 .batbig .eta { font-size: 22px; }
+.est { font-size: 22px; padding: 0 4px; }
 .chart { border: 2px solid var(--ink); border-radius: 4px; padding: 6px; }
 .chart svg { display: block; width: 100%; height: auto; }
 .mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -166,8 +167,6 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 .map button { all: unset; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 3px; font: 700 20px var(--font-kindle); display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; cursor: pointer; padding: 2px; line-height: 1.1; }
 .map button.sel { background: var(--ink); color: var(--paper); }
 .ctrl .info { font-size: 22px; font-weight: 700; padding: 0 4px; }
-.ctrl .hidden-row { font-size: 20px; padding: 0 4px; }
-.ctrl .hidden-row button { all: unset; text-decoration: underline; cursor: pointer; margin-right: 12px; }
 
 /* sleep page */
 .sleep-note { font-size: 20px; text-align: center; border-top: 2px solid var(--ink); padding-top: 6px; flex: none; }
@@ -184,7 +183,12 @@ header.page p { margin: 0; color: var(--muted); max-width: 84ch; }
 .dialog h3 { margin: 0; font-size: 26px; }
 .dialog p { margin: 0; font-size: 22px; }
 .dialog .btnrow { justify-content: flex-end; }
-.toast { position: absolute; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); font-size: 22px; font-weight: 700; padding: 12px 18px; border-radius: 4px; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
+/* choice popup (6.10): 500 px wide, 3 px border, title, one 64 px row per option, backdrop under it takes every tap */
+.pick { position: absolute; left: 50%; top: 50%; width: 500px; max-width: calc(100% - 40px); transform: translate(-50%, -50%); background: var(--paper); border: 3px solid var(--ink); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.pick h3 { margin: 0; font-size: 26px; line-height: 1.3; }
+.pick .plist { display: flex; flex-direction: column; gap: 4px; }
+.pick .empty-row { min-height: 64px; display: flex; align-items: center; padding: 0 12px; font-size: 22px; }
+.toast { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); font-size: 22px; font-weight: 700; padding: 12px 18px; border-radius: 4px; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
 .flash { position: absolute; inset: 0; background: var(--ink); pointer-events: none; }
 
 /* ---------------------------------------------------------------- panel */
@@ -267,7 +271,8 @@ body.shot .device { padding: 0; border-radius: 0; background: none; box-shadow: 
       <ul class="plain">
         <li>Tap the widgets, the bell, the clock or the bottom bar, as on the device.</li>
         <li><b>Menu › Apps</b> opens the launcher; <b>Menu › Organize home</b> opens the organizer.</li>
-        <li>URL parameters: <code>?view=home|yourapps|central|apps|sleep|sistema|sleepcfg|organizar|relogio|timer|nota|contagem|bateria|clima|servidor|modelo</code>, <code>&amp;land=1</code>, <code>&amp;style=analogico</code>, <code>&amp;samples=1</code> (list the sample apps in Apps) and <code>&amp;shot=1</code> (only the screen, in real px, for the screenshots).</li>
+        <li>URL parameters: <code>?view=home|yourapps|central|apps|sleep|sistema|sleepcfg|organizar|relogio|timer|nota|contagem|bateria|clima|servidor|modelo</code>, <code>&amp;land=1</code>, <code>&amp;style=analogico</code>, <code>&amp;samples=1</code> (list the sample apps in Apps), <code>&amp;popup=idle|after|wake|titles</code> (with <code>view=sleepcfg</code>: opens that choice popup), <code>&amp;popup=hidden</code> (with <code>view=organizar</code>, and <code>&amp;org=sleep</code> for the Sleep tab: the Hidden (N) popup) and <code>&amp;shot=1</code> (only the screen, in real px, for the screenshots).</li>
+        <li>Rows with several options (System › Sleep) open a choice popup; tap outside it, the bottom bar or press Esc to cancel.</li>
         <li>The time is fixed (Friday, October 16, 14:32) so the screenshots are reproducible.</li>
       </ul>
     </section>
@@ -285,7 +290,7 @@ const S = {
   wifi: "on", pct: 64, landscape: P.get("land") === "1", style: P.get("style") || "data",
   sleep: P.get("view") === "sleep", menu: P.get("menu") === "1",
   samples: P.get("samples") === "1" || ["yourapps", "clima", "servidor", "modelo"].includes(P.get("view")),
-  orgMode: "home", sel: "nota", sleepEvery: 1800, idleMode: "always", idleMin: 5, wake: "schedule",
+  orgMode: "home", sel: "nota", sleepEvery: 1800, idleMode: "always", idleMin: 5, wake: "schedule", titles: "show", popup: null, toast: "",
   timerSel: "pomo",
   layout: {
     home: [
@@ -334,7 +339,10 @@ const isHome = () => ["home", "yourapps"].includes(current().r);
 const unread = () => S.notifs.filter(n => !n.read);
 const NAME = { timer: "Timer", contagem: "Countdown", bateria: "Battery", sistema: "System" };
 const hm = "14:32";
-const eta = "~14h";
+const WAKE_TXT = { 900: "every 15 min", 1800: "every 30 min", 3600: "every 1 h", 7200: "every 2 h", schedule: "by schedule", never: "never" };
+const eta = "~5 days";           // main estimate: the real pace (sleep included) is preferred (status bar, widgets, sleep page)
+const etaAwake = "~14h";         // awake with Wi-Fi: only on the Battery screen
+const mA = "5 mA";               // average current behind the main estimate
 
 // ---------------------------------------------------------------- icons
 const I = (body, w = 30) => `<svg width="${w}" height="${w}" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3">${body}</svg>`;
@@ -554,7 +562,7 @@ function sistemaScreen() {
     row('data-org="home"', "Organize", "Home and sleep page", "›"),
     row('data-act="noop"', "Notifications", "per app, top banner, sleep", "›"),
     row('data-act="noop"', "Updates", "intervals, windows, quiet 23h–7h", "›"),
-    row('data-go="sleepcfg"', "Sleep", `sleeps by itself: ${({always:"always",battery:"on battery only",never:"never"})[S.idleMode]} · refreshes: by schedule`, "›"),
+    row('data-go="sleepcfg"', "Sleep", `sleeps by itself: ${({always:"always",battery:"on battery only",never:"never"})[S.idleMode]} · refreshes: ${WAKE_TXT[S.wake]}`, "›"),
     row('data-act="noop"', "Connections", S.samples ? "all responding" : "no servers", "›"),
     row('data-act="noop"', "Screen and navigation", `bar + gestures · ${S.landscape ? "landscape" : "portrait"}`, "›"),
     row('data-act="noop"', "Apps", "settings of each app", "›"),
@@ -568,18 +576,23 @@ function sleepcfgScreen() {
   const modeTxt = { always: "always", battery: "on battery only", never: "never" }[m];
   const modeSub = { always: "plugged in or not", battery: "does not sleep while plugged in", never: "does not sleep by itself" }[m];
   const L = S.landscape;
+  const rowPick = (v, title, sub, right) => row(`data-pick-open="${v}"`, title, sub, right);
   return `${appHeader("Sleep")}
     <div class="cols ${L ? "two" : ""}">
       ${L ? "" : sec("WHEN TO SLEEP")}
-      ${row('data-act="idlemode"', "Sleep by itself", modeSub, modeTxt)}
-      ${m !== "never" ? row('data-act="noop"', "After", "without touching the screen", `${S.idleMin} min`) : ""}
+      ${rowPick("idle", "Sleep by itself", modeSub, modeTxt)}
+      ${m !== "never" ? rowPick("after", "After", "without touching the screen", `${S.idleMin} min`) : ""}
       ${row('data-act="noop"', "Sleep now", "the power button wakes it", "›")}
       ${L ? "" : sec("WHILE ASLEEP")}
-      ${row('data-act="noop"', "Refresh the screen", "turns Wi-Fi on, refreshes and goes back to sleep", "by schedule")}
-      ${L ? "" : `<div class="notelines">weekdays 07:30–18:30 every 30 min<br>18:30–23:00 every 1 h<br>23:00–07:30 does not refresh<br>(weekends: every 1 h · fixed times in this version)</div>`}
-      ${row('data-act="noop"', "Titles on the sleep page", "hides the title in the top strip", "show")}
+      ${rowPick("wake", "Refresh the screen", "turns Wi-Fi on, refreshes and goes back to sleep", WAKE_TXT[S.wake])}
+      ${L || S.wake !== "schedule" ? "" : `<div class="notelines">weekdays 07:30–18:30 every 30 min<br>18:30–23:00 every 1 h<br>23:00–07:30 does not refresh<br>(weekends: every 1 h · fixed times in this version)</div>`}
+      ${rowPick("titles", "Titles on the sleep page", "hides the title in the top strip", S.titles)}
       ${row('data-go="organizar"', "What shows on the screen", `${S.layout.sleep.length} widgets · edit in the organizer`, "›")}
     </div>`;
+}
+// apps that can come back: hidden from Home, or not on the sleep page (never System there); samples only when listed
+function hiddenApps(mode) {
+  return Object.keys(APPS).filter(id => !S.layout[mode].some(x => x.id === id) && !(mode === "sleep" && id === "sistema") && (!APPS[id].sample || S.samples));
 }
 function organizeScreen() {
   const mode = S.orgMode, list = S.layout[mode];
@@ -589,20 +602,21 @@ function organizeScreen() {
     const label = it.w >= 2 ? APPS[it.id].short : APPS[it.id].short.slice(0, 2);
     return `<button type="button" class="${it.id === sel.id ? "sel" : ""}" data-sel="${it.id}" style="grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}">${esc(label)}${it.w >= 2 && it.h >= 2 ? "<br>" + it.size.replace("x", "×") : ""}</button>`;
   }).join("");
-  const free = Object.keys(APPS).filter(id => !list.some(x => x.id === id) && id !== "sistema" && !APPS[id].sample);
+  const n = hiddenApps(mode).length;
+  const before = '<button type="button" class="scr-btn">↑ Before</button>', after = '<button type="button" class="scr-btn">↓ After</button>', size = '<button type="button" class="scr-btn">Size ▸</button>';
+  // landscape: Before / After share a row, Size on its own line (the side column also has to fit Hidden (N))
+  const moves = S.landscape ? `<div class="btnrow fill">${before}${after}</div><div class="btnrow fill">${size}</div>` : `<div class="btnrow fill">${before}${after}${size}</div>`;
   return `${appHeader("Organize", "1 page")}
     <div class="org">
       <div class="seg-k"><button type="button" data-act="org-home" aria-pressed="${mode === "home"}">Home</button><button type="button" data-act="org-sleep" aria-pressed="${mode === "sleep"}">Sleep</button></div>
       <div class="map">${map}</div>
       <div class="ctrl">
         <div class="info">${esc(APPS[sel.id].name)} · ${sel.size.replace("x", "×")}</div>
+        ${moves}
         <div class="btnrow fill">
-          <button type="button" class="scr-btn">↑ Before</button><button type="button" class="scr-btn">↓ After</button><button type="button" class="scr-btn">Size ▸</button>
+          <button type="button" class="scr-btn" data-act="hide">${mode === "sleep" ? "Remove" : "Hide"}</button><button type="button" class="scr-btn inv" data-act="back">Done</button>
         </div>
-        <div class="btnrow fill">
-          <button type="button" class="scr-btn">${mode === "sleep" ? "Remove" : "Hide"}</button><button type="button" class="scr-btn inv" data-act="back">Done</button>
-        </div>
-        <div class="hidden-row">${mode === "sleep" ? (free.length ? "Add: " + free.map(id => `<button type="button">${esc(APPS[id].name)}</button>`).join("") : "No apps to add.") : "No hidden apps."}</div>
+        <div class="btnrow fill"><button type="button" class="scr-btn" data-act="hidden" ${n ? "" : "disabled"}>Hidden (${n})</button></div>
       </div>
     </div>`;
 }
@@ -641,19 +655,76 @@ function contagemScreen() {
   return `${appHeader("Countdown")}<div class="list">${rows}</div><button type="button" class="scr-btn inv">New</button>`;
 }
 function bateriaScreen() {
-  const W = 560, H = S.landscape ? 150 : 220, L = 44, R = 10, T = 10, B = 30;
+  const W = 560, H = S.landscape ? 120 : 220, L = 44, R = 10, T = 10, B = 30;
   const pts = [], n = 24;
   for (let i = 0; i < n; i++) { const x = L + i * (W - L - R) / (n - 1), y = T + (i * 0.55 + Math.sin(i) * 0.4) * (H - T - B) / 18; pts.push(`${x.toFixed(1)},${y.toFixed(1)}`); }
   const grid = [100, 80, 60].map((p, i) => { const y = T + i * (H - T - B) / 2.4; return `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke-width="1" stroke-dasharray="2 4"/><text x="${L - 6}" y="${y + 6}" text-anchor="end" font-size="18" fill="currentColor" stroke="none">${p}%</text>`; }).join("");
   const hours = [8, 10, 12, 14].map((h, i) => `<text x="${L + i * 150}" y="${H - 6}" font-size="18" fill="currentColor" stroke="none">${h}h</text>`).join("");
   const l = pts[pts.length - 1].split(",");
   return `${appHeader("Battery")}
-    <div class="batbig"><span class="pct">${S.pct}%</span>${batteryIcon(110, 52)}<span class="eta">${eta} left</span></div>
+    <div class="batbig"><span class="pct">${S.pct}%</span>${batteryIcon(110, 52)}<span class="eta">${eta} left · ${mA} on average</span></div>
+    <div class="est">${S.landscape ? `<b>at the current pace ${eta} · awake with Wi-Fi ${etaAwake}</b>` : `<b>at the current pace ${eta}</b><br>awake with Wi-Fi ${etaAwake}`}</div>
     <div class="chart"><svg viewBox="0 0 ${W} ${H}" fill="none" stroke="currentColor">${grid}${hours}<line x1="${L}" x2="${L}" y1="${T}" y2="${H - B}" stroke-width="2"/><line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke-width="2"/><polyline points="${pts.join(" ")}" stroke-width="4" stroke-linejoin="round"/><circle cx="${l[0]}" cy="${l[1]}" r="6" fill="currentColor"/></svg></div>
     <div class="mini">
-      <div class="stat"><b>42 mA</b><span>average</span></div><div class="stat"><b>907</b><span>mAh full</span></div>
+      <div class="stat"><b>5 mA</b><span>average</span></div><div class="stat"><b>907</b><span>mAh full</span></div>
       <div class="stat"><b>23 °C</b><span>temperature</span></div><div class="stat"><b>3,120</b><span>samples</span></div>
     </div>`;
+}
+// ---------------------------------------------------------------- choice popup (R-K4, 6.10)
+// A settings row with several options opens this instead of cycling: title, one 64 px row per option, the current one
+// inverted with a "●", paged when it does not fit, a tap outside (or Back) cancels. keepOpen + footer: stays open after a pick.
+// cfg = { title, options: () => [{ value, label, sub }], current, onPick(value), keepOpen, footer, empty }
+const PICK_FOOTER = 72, PICK_PAGER = 72;   // button/pager 64 + gap 8
+function openPopup(cfg) { S.popup = cfg; render(); }
+function closePopup() { S.popup = null; render(); }
+function pickPer(n, avail) {
+  const fit = k => k * 64 + (k - 1) * 4;
+  return n === 0 || fit(n) <= avail ? Math.max(n, 1) : Math.max(1, Math.floor((avail - PICK_PAGER + 4) / 68));
+}
+function popupView() {
+  const cfg = S.popup, [, H] = dims();
+  const opts = cfg.options();
+  // room between the status bar and the bottom bar, minus margins, border + padding, title and gaps
+  const avail = H - 48 - 72 - 16 - 42 - 36 - 8 - (cfg.footer ? PICK_FOOTER : 0);
+  const per = pickPer(opts.length, avail), pages = Math.max(1, Math.ceil(opts.length / per));
+  if (cfg.page === undefined) cfg.page = Math.max(0, Math.floor(opts.findIndex(o => o.value === cfg.current) / per));
+  cfg.page = Math.max(0, Math.min(cfg.page, pages - 1));
+  return { opts, per, pages, page: cfg.page };
+}
+function popupHtml() {
+  const cfg = S.popup, v = popupView();
+  const rows = v.opts.slice(v.page * v.per, (v.page + 1) * v.per).map((o, i) => {
+    const cur = o.value === cfg.current;
+    return row(`data-pick="${v.page * v.per + i}"`, esc(o.label), o.sub ? esc(o.sub) : "", cur ? "●" : "", cur ? "inv" : "");
+  }).join("");
+  const pager = v.pages > 1 ? `<div class="pager"><button type="button" class="scr-btn" data-act="ppage-prev" ${v.page === 0 ? "disabled" : ""}>‹</button><span>${v.page + 1} / ${v.pages}</span><button type="button" class="scr-btn" data-act="ppage-next" ${v.page === v.pages - 1 ? "disabled" : ""}>›</button></div>` : "";
+  const footer = cfg.footer ? `<button type="button" class="scr-btn inv" data-act="pick-done">${esc(cfg.footer)}</button>` : "";
+  return `<div class="backdrop" data-act="pick-cancel"></div><div class="pick"><h3>${esc(cfg.title)}</h3>
+    <div class="plist">${rows || `<div class="empty-row">${esc(cfg.empty || "")}</div>`}</div>${pager}${footer}</div>`;
+}
+const POPUPS = {   // the settings rows of System › Sleep (apps/sistema/screens.lua)
+  idle: () => ({ title: "Sleep by itself", current: S.idleMode, onPick: v => { S.idleMode = v; },
+    options: () => [["always", "plugged in or not"], ["battery", "does not sleep while plugged in"], ["never", "does not sleep by itself"]]
+      .map(([value, sub]) => ({ value, label: { always: "always", battery: "on battery only", never: "never" }[value], sub })) }),
+  after: () => ({ title: "After", current: S.idleMin, onPick: v => { S.idleMin = v; },
+    options: () => [2, 5, 10, 15].map(value => ({ value, label: value + " min" })) }),
+  wake: () => ({ title: "Refresh the screen", current: S.wake, onPick: v => { S.wake = v; },
+    options: () => [900, 1800, 3600, 7200, "schedule", "never"].map(value => ({ value, label: WAKE_TXT[value] })) }),
+  titles: () => ({ title: "Titles on the sleep page", current: S.titles, onPick: v => { S.titles = v; },
+    options: () => ["show", "hide"].map(value => ({ value, label: value })) }),
+  // organizer, R-O4: brings a hidden app back, says so and stays open with the list updated; Done closes
+  hidden: () => {
+    const mode = S.orgMode;
+    return { title: mode === "sleep" ? "Apps not on the sleep page" : "Hidden apps", keepOpen: true, footer: "Done",
+      empty: mode === "sleep" ? "No apps to add." : "No hidden apps.",
+      options: () => hiddenApps(mode).map(value => ({ value, label: APPS[value].name })),
+      onPick: id => { S.layout[mode].push({ id, size: APPS[id].sizes[0] }); S.sel = id; showToast(`${APPS[id].name} added`); } };
+  },
+};
+let toastTimer = 0;
+function showToast(text) {
+  S.toast = text; clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { S.toast = ""; render(); }, 2600);
 }
 function menuSheet() {
   const home = isHome();
@@ -685,25 +756,34 @@ function render() {
   let content;
   if (S.sleep) content = sleepPage();
   else content = (SCREENS[r] || homeScreen)();
-  scr.innerHTML = statusBar() + `<div class="content">${content}${S.menu && !S.sleep ? menuSheet() : ""}</div>` + (S.sleep ? "" : navBar());
+  scr.innerHTML = statusBar() + `<div class="content">${content}${S.menu && !S.sleep ? menuSheet() : ""}${S.popup && !S.sleep ? popupHtml() : ""}${S.toast ? `<div class="toast">${esc(S.toast)}</div>` : ""}</div>` + (S.sleep ? "" : navBar());
   $("#caption").textContent = `Kindle KT3 · ${W} × ${H} · ${S.landscape ? "landscape" : "portrait"}`;
   for (const [id, sel] of [["seg-orient", S.landscape ? "landscape" : "portrait"], ["seg-style", S.style], ["seg-view", S.sleep ? "sleep" : r]])
     document.querySelectorAll(`#${id} button`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === sel)));
 }
-function push(r) { S.menu = false; S.sleep = false; S.stack.push({ r }); render(); }
+function push(r) { S.popup = null; S.menu = false; S.sleep = false; S.stack.push({ r }); render(); }
 function setView(v) {
-  S.menu = false;
+  S.menu = false; S.popup = null;
   if (v === "sleep") { S.sleep = true; } else { S.sleep = false; S.stack = [{ r: v }]; }
   if (v === "organizar") { S.stack = [{ r: "home" }, { r: "sistema" }, { r: "organizar" }]; }
   render();
 }
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-open],[data-act],[data-go],[data-org],[data-sel],[data-style],[data-timersel],[data-v]");
+  // the popup is modal: a tap anywhere else on the screen (bottom bar included) cancels it
+  if (S.popup && e.target.closest("#screen") && !e.target.closest(".pick")) return closePopup();
+  const t = e.target.closest("[data-pick],[data-pick-open],[data-open],[data-act],[data-go],[data-org],[data-sel],[data-style],[data-timersel],[data-v]");
   if (!t) return;
   const d = t.dataset;
   if (d.v !== undefined && t.closest("#seg-view")) return setView(d.v);
   if (d.v !== undefined && t.closest("#seg-orient")) { S.landscape = d.v === "landscape"; return render(); }
   if (d.v !== undefined && t.closest("#seg-style")) { S.style = d.v; return render(); }
+  if (d.pickOpen) return openPopup(POPUPS[d.pickOpen]());
+  if (d.pick !== undefined) {
+    const cfg = S.popup;
+    cfg.onPick(cfg.options()[Number(d.pick)].value);
+    if (!cfg.keepOpen) S.popup = null; else cfg.current = undefined;
+    return render();
+  }
   if (d.open) return push(d.open);
   if (d.go) return push(d.go);
   if (d.org) { S.orgMode = d.org; return push("organizar"); }
@@ -717,7 +797,18 @@ document.addEventListener("click", e => {
     case "menu-close": S.menu = false; return render();
     case "sleep-now": S.menu = false; S.sleep = true; return render();
     case "rotate": S.landscape = !S.landscape; return render();
-    case "idlemode": S.idleMode = { always: "battery", battery: "never", never: "always" }[S.idleMode]; return render();
+    case "pick-cancel": case "pick-done": return closePopup();
+    case "ppage-prev": S.popup.page--; return render();
+    case "ppage-next": S.popup.page++; return render();
+    case "hidden": return openPopup(POPUPS.hidden());
+    case "hide": {
+      const list = S.layout[S.orgMode], i = list.findIndex(x => x.id === S.sel);
+      if (i < 0 || list.length < 2) return;
+      const [gone] = list.splice(i, 1);
+      if (gone.id === "sistema" && S.orgMode === "home") showToast("System is still in the Menu");
+      S.sel = list[Math.min(i, list.length - 1)].id;
+      return render();
+    }
     case "org-home": S.orgMode = "home"; S.sel = "nota"; return render();
     case "org-sleep": S.orgMode = "sleep"; S.sel = "relogio"; return render();
   }
@@ -725,6 +816,8 @@ document.addEventListener("click", e => {
 if (SHOT) document.body.classList.add("shot");
 if (P.get("org") === "sleep") { S.orgMode = "sleep"; S.sel = "relogio"; }
 if (P.get("idle")) S.idleMode = P.get("idle");
+if (P.get("popup") && POPUPS[P.get("popup")]) S.popup = POPUPS[P.get("popup")]();
+addEventListener("keydown", e => { if (e.key === "Escape" && S.popup) closePopup(); });
 if (S.stack[0].r === "organizar") S.stack = [{ r: "home" }, { r: "sistema" }, { r: "organizar" }];
 addEventListener("resize", render);
 document.fonts && document.fonts.ready.then(render);
